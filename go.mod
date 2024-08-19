@@ -5,7 +5,7 @@ go 1.22.3
 require (
 	github.com/csunibo/auth v0.2.0
 	github.com/kataras/muxie v1.1.2
-	github.com/orandin/slog-gorm v1.3.2
+	github.com/orandin/slog-gorm v1.4.0
 	github.com/pelletier/go-toml/v2 v2.2.2
 	github.com/swaggo/swag v1.16.3
 	golang.org/x/exp v0.0.0-20240506185415-9bf2ced13842
