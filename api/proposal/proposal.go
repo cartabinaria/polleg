@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/csunibo/auth/pkg/httputil"
-	"github.com/csunibo/polleg/api"
-	"github.com/csunibo/polleg/util"
+	"github.com/cartabinaria/auth/pkg/httputil"
+	"github.com/cartabinaria/polleg/api"
+	"github.com/cartabinaria/polleg/util"
 )
 
 type DocumentProposal struct {

@@ -9,11 +9,11 @@ import (
 	"github.com/pelletier/go-toml/v2"
 	"golang.org/x/exp/slog"
 
-	"github.com/csunibo/auth/pkg/httputil"
-	"github.com/csunibo/auth/pkg/middleware"
-	"github.com/csunibo/polleg/api"
-	"github.com/csunibo/polleg/api/proposal"
-	"github.com/csunibo/polleg/util"
+	"github.com/cartabinaria/auth/pkg/httputil"
+	"github.com/cartabinaria/auth/pkg/middleware"
+	"github.com/cartabinaria/polleg/api"
+	"github.com/cartabinaria/polleg/api/proposal"
+	"github.com/cartabinaria/polleg/util"
 )
 
 type Config struct {
@@ -34,7 +34,7 @@ var (
 
 // @title			Polleg API
 // @version		1.0
-// @description	This is the backend API for Polleg that allows unibo students to answer exam exercises directly on the csunibo website
+// @description	This is the backend API for Polleg that allows unibo students to answer exam exercises directly on the cartabinaria website
 // @contact.name	Gabriele Genovese
 // @contact.email	gabriele.genovese2@studio.unibo.it
 // @license.name	AGPL-3.0

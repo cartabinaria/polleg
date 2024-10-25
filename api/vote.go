@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/csunibo/auth/pkg/httputil"
-	"github.com/csunibo/auth/pkg/middleware"
-	"github.com/csunibo/polleg/util"
+	"github.com/cartabinaria/auth/pkg/httputil"
+	"github.com/cartabinaria/auth/pkg/middleware"
+	"github.com/cartabinaria/polleg/util"
 	"github.com/kataras/muxie"
 	"gorm.io/gorm/clause"
 )

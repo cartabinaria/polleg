@@ -417,7 +417,7 @@ var SwaggerInfo = &swag.Spec{
 	BasePath:         "/",
 	Schemes:          []string{},
 	Title:            "Polleg API",
-	Description:      "This is the backend API for Polleg that allows unibo students to answer exam exercises directly on the csunibo website",
+	Description:      "This is the backend API for Polleg that allows unibo students to answer exam exercises directly on the cartabinaria website",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

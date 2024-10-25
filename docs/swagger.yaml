@@ -114,7 +114,7 @@ info:
     email: gabriele.genovese2@studio.unibo.it
     name: Gabriele Genovese
   description: This is the backend API for Polleg that allows unibo students to answer
-    exam exercises directly on the csunibo website
+    exam exercises directly on the CartaBinaria website
   license:
     name: AGPL-3.0
     url: https://www.gnu.org/licenses/agpl-3.0.en.html
