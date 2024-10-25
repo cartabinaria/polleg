@@ -1,7 +1,7 @@
 github.com/KyleBanks/depth v1.2.1 h1:5h8fQADFrWtarTdtDudMmGsC7GPbOAu6RVB3ffsVFHc=
 github.com/KyleBanks/depth v1.2.1/go.mod h1:jzSb9d0L43HxTQfT+oSA1EEp2q+ne2uh6XgeJcm8brE=
-github.com/cartabinaria/auth v0.2.0 h1:RmFEBQC1K8lLAUmVcLgSf4aFFi5FmrRL9vV3qgWlvCY=
-github.com/cartabinaria/auth v0.2.0/go.mod h1:I2SPP1/FWb3kN0GIybIZx3a7ssSY6Fj0gV9rSllFlfM=
+github.com/cartabinaria/auth v0.3.0 h1:ywIIVxQkDA17USBDy4ke0KX/gj3msb3f+5S0yE0/o58=
+github.com/cartabinaria/auth v0.3.0/go.mod h1:1B52iYgqh/woiDYqVC2pI4YSKEBicmAsKynlhqHjI7M=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=

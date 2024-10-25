@@ -3,7 +3,7 @@ module github.com/cartabinaria/polleg
 go 1.22.3
 
 require (
-	github.com/cartabinaria/auth v0.2.0
+	github.com/cartabinaria/auth v0.3.0
 	github.com/kataras/muxie v1.1.2
 	github.com/orandin/slog-gorm v1.3.2
 	github.com/pelletier/go-toml/v2 v2.2.2
