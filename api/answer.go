@@ -5,18 +5,43 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"time"
+    "regexp"
+    "math/rand"
 
 	"github.com/cartabinaria/auth/pkg/httputil"
 	"github.com/cartabinaria/auth/pkg/middleware"
 	"github.com/cartabinaria/polleg/util"
 	"github.com/kataras/muxie"
 	"golang.org/x/exp/slog"
+	"gorm.io/gorm"
 )
 
 type PutAnswerRequest struct {
-	Question uint   `json:"question"`
-	Parent   *uint  `json:"parent"`
-	Content  string `json:"content"`
+	Question  uint   `json:"question"`
+	Parent    *uint  `json:"parent"`
+	Content   string `json:"content"`
+	Anonymous bool   `json:"anonymous"`
+}
+
+type AnswerResponse struct {
+	// taken from from gorm.Model, so we can json strigify properly
+	ID        uint      `json:"id"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+
+	Question uint  `json:"question"`
+	Parent   *uint `json:"parent"`
+
+	User      string   `json:"user"`
+	Content   string   `json:"content"`
+	Upvotes   uint32   `json:"upvotes"`
+	Downvotes uint32   `json:"downvotes"`
+	Replies   []Answer `json:"replies"`
+
+	Anonymous bool     `json:"anonymous"`
+    AnonymousAvatarURL string `json:"anonymous_avatar_url"`
+    Alias string `json:"alias"`
 }
 
 var (
@@ -32,14 +57,70 @@ var (
   select   *
   from     answers
   full join     (%s) on answer = answers.id
-  where    deleted_at is NULL and answers.parent is NULL and answers.question = ? 
+  where    deleted_at is NULL and answers.parent is NULL and answers.question = ?
 `, VOTES_QUERY)
 	REPLIES_QUERY = `
   select   *
   from     answers
   where    deleted_at is NULL and answers.parent IN ?
 `
+	names = []string{"Wyatt", "Vivian", "Maria", "Alexander", "Luis", "Aidan", "Mason", "Aiden", "Mackenzie", "Adrian", "Oliver", "Andrea", "Amaya", "Nolan", "Riley", "Robert", "Ryker", "Sara", "Ryan", "Sawyer"}
 )
+
+func GetOrCreateUserByID(db *gorm.DB, id uint, username string) (*User, error) {
+
+    // Try to find user by ID
+    var user User
+    userResult := db.First(&user, id)
+    if userResult.Error != nil {
+        if userResult.Error == gorm.ErrRecordNotFound {
+            name := names[rand.Intn(len(names))]
+
+            // Find last alias for this name
+            var lastUser User
+            pattern := fmt.Sprintf("%s%%", name)
+            result := db.Where("alias LIKE ?", pattern).Order("created_at DESC").First(&lastUser)
+
+            // Extract last number
+            nextNum := 1
+            if result.Error == nil {
+                re := regexp.MustCompile(fmt.Sprintf(`^%s(\d+)$`, name))
+                matches := re.FindStringSubmatch(lastUser.Alias)
+                if len(matches) == 2 {
+                    if n, err := strconv.Atoi(matches[1]); err == nil {
+                        nextNum = n + 1
+                    }
+                }
+            }
+
+            alias := fmt.Sprintf("%s%d", name, nextNum)
+
+            // Not found, create new record
+            user = User{
+                ID:       id,
+                Username: username,
+                Alias:    alias,
+            }
+            if err := db.Create(&user).Error; err != nil {
+                return nil, err
+            }
+            return &user, nil
+        }
+        // Some other error
+        return nil, userResult.Error
+    }
+    // Found
+    return &user, nil
+}
+
+func generateAnonymousAvatar(alias string) string {
+    re := regexp.MustCompile(`^[A-Za-z]+`)
+    match := re.FindString(alias)
+    if match == "" {
+        return ""
+    }
+    return fmt.Sprintf("https://api.dicebear.com/9.x/thumbs/svg?seed=%s", match)
+}
 
 // @Summary		Insert a new answer
 // @Description	Insert a new answer under a question
@@ -88,11 +169,13 @@ func PutAnswerHandler(res http.ResponseWriter, req *http.Request) {
 	answer := Answer{
 		Question:  ans.Question,
 		Parent:    ans.Parent,
-		User:      user.Username,
+		UserId:    user.ID,
 		Content:   ans.Content,
 		Upvotes:   0,
 		Downvotes: 0,
+		Anonymous: ans.Anonymous,
 	}
+
 	err = db.Create(&answer).Error
 	if err != nil {
 		slog.Error("error while creating the answer", "answer", answer, "err", err)
@@ -100,7 +183,28 @@ func PutAnswerHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	httputil.WriteData(res, http.StatusOK, answer)
+    usr, err := GetOrCreateUserByID(db, user.ID, user.Username)
+    if err != nil {
+        slog.Error("error while getting or creating the user-alias association", "user", user, "err", err)
+        httputil.WriteError(res, http.StatusBadRequest, "could not insert the answer")
+        return
+    }
+    
+	httputil.WriteData(res, http.StatusOK, AnswerResponse{
+		ID:        answer.ID,
+		CreatedAt: answer.CreatedAt,
+		UpdatedAt: answer.UpdatedAt,
+		Question:  answer.Question,
+		Parent:    answer.Parent,
+		User:      user.Username,
+		Content:   answer.Content,
+		Upvotes:   answer.Upvotes,
+		Downvotes: answer.Downvotes,
+		Replies:   answer.Replies,
+		Anonymous: answer.Anonymous,
+        AnonymousAvatarURL:    generateAnonymousAvatar(usr.Alias),
+        Alias: usr.Alias,
+	})
 }
 
 // @Summary		Get all answers given a question
@@ -189,7 +293,7 @@ func DelAnswerHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if !user.Admin && ans.User != user.Username {
+	if !user.Admin && ans.UserId != user.ID {
 		slog.Error("you are not an admin or the owner of the answer", "err", err)
 		httputil.WriteError(res, http.StatusInternalServerError, "you are not an admin or the owner of the answer")
 		return
@@ -201,5 +305,17 @@ func DelAnswerHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	httputil.WriteData(res, http.StatusOK, ans)
+	httputil.WriteData(res, http.StatusOK, AnswerResponse{
+		ID:        ans.ID,
+		CreatedAt: ans.CreatedAt,
+		UpdatedAt: ans.UpdatedAt,
+		Question:  ans.Question,
+		Parent:    ans.Parent,
+		User:      user.Username,
+		Content:   ans.Content,
+		Upvotes:   ans.Upvotes,
+		Downvotes: ans.Downvotes,
+		Replies:   ans.Replies,
+		Anonymous: ans.Anonymous,
+	})
 }

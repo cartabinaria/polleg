@@ -53,7 +53,7 @@ func main() {
 		os.Exit(1)
 	}
 	db := util.GetDb()
-	err = db.AutoMigrate(&proposal.Proposal{}, &api.Question{}, &api.Answer{}, &api.Vote{})
+	err = db.AutoMigrate(&proposal.Proposal{}, &api.Question{}, &api.Answer{}, &api.Vote{}, &api.User{})
 	if err != nil {
 		slog.Error("AutoMigrate failed", "err", err)
 		os.Exit(1)

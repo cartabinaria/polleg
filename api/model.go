@@ -16,12 +16,15 @@ type Answer struct {
 	Question uint  `json:"question" gorm:"foreignKey:Question;references:ID"`
 	Parent   *uint `json:"parent"`
 
-	User      string   `json:"user"`
+	UserId    uint     `json:"-"`
 	Content   string   `json:"content"`
 	Upvotes   uint32   `json:"upvotes" gorm:"->"`
 	Downvotes uint32   `json:"downvotes" gorm:"->"`
 	Replies   []Answer `json:"replies" gorm:"foreignKey:Parent;references:ID"`
 	Votes     []Vote   `json:"-" gorm:"foreignKey:Answer;references:ID"`
+	Anonymous bool     `json:"anonymous"`
+
+
 }
 
 type Question struct {
@@ -38,12 +41,22 @@ type Question struct {
 }
 
 type Vote struct {
-	Answer uint   `json:"answer" gorm:"primaryKey"`
-	User   string `json:"user" gorm:"primaryKey"`
-	Vote   int8   `json:"vote"`
+	Answer uint `json:"answer" gorm:"primaryKey"`
+	UserId uint `json:"-" gorm:"primaryKey"`
+	Vote   int8 `json:"vote"`
 
 	// taken from from gorm.Model
 	CreatedAt time.Time
 	UpdatedAt time.Time
 	DeletedAt gorm.DeletedAt `gorm:"index"`
+}
+
+type User struct {
+	ID       uint   `json:"-" gorm:"primarykey"`
+	Username string `json:"username"`
+	Alias    string `json:"alias"`
+
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	DeletedAt gorm.DeletedAt `json:"-" gorm:"index"`
 }
