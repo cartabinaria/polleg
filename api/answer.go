@@ -291,7 +291,28 @@ func GetQuestionHandler(res http.ResponseWriter, req *http.Request) {
 	}
 
 	question.Answers = answers
-	httputil.WriteData(res, http.StatusOK, question)
+
+	// recursively convert answers
+	var responseAnswers []AnswerResponse
+	for _, ans := range question.Answers {
+		ans, err := ConvertAnswerToAPI(ans, ans.UserId)
+		if err != nil {
+			return
+		}
+		responseAnswers = append(responseAnswers, *ans)
+	}
+
+	httputil.WriteData(res, http.StatusOK,
+		QuestionResponse{
+			ID:        question.ID,
+			CreatedAt: question.CreatedAt,
+			UpdatedAt: question.UpdatedAt,
+			Document:  question.Document,
+			Start:     question.Start,
+			End:       question.End,
+			Answers:   responseAnswers,
+		},
+	)
 }
 
 // @Summary		Delete an answer

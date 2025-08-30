@@ -67,7 +67,6 @@ type PutAnswerRequest struct {
 }
 
 type AnswerResponse struct {
-	// taken from from gorm.Model, so we can json strigify properly
 	ID        uint      `json:"id"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
@@ -101,7 +100,6 @@ type VoteResponse struct {
 }
 
 type QuestionResponse struct {
-	// taken from from gorm.Model, so we can json strigify properly
 	ID        uint           `json:"id"`
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
