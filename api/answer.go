@@ -3,11 +3,10 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"net/http"
+	"regexp"
 	"strconv"
-	"time"
-    "regexp"
-    "math/rand"
 
 	"github.com/cartabinaria/auth/pkg/httputil"
 	"github.com/cartabinaria/auth/pkg/middleware"
@@ -16,33 +15,6 @@ import (
 	"golang.org/x/exp/slog"
 	"gorm.io/gorm"
 )
-
-type PutAnswerRequest struct {
-	Question  uint   `json:"question"`
-	Parent    *uint  `json:"parent"`
-	Content   string `json:"content"`
-	Anonymous bool   `json:"anonymous"`
-}
-
-type AnswerResponse struct {
-	// taken from from gorm.Model, so we can json strigify properly
-	ID        uint      `json:"id"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
-
-	Question uint  `json:"question"`
-	Parent   *uint `json:"parent"`
-
-	User      string   `json:"user"`
-	Content   string   `json:"content"`
-	Upvotes   uint32   `json:"upvotes"`
-	Downvotes uint32   `json:"downvotes"`
-	Replies   []Answer `json:"replies"`
-
-	Anonymous bool     `json:"anonymous"`
-    AnonymousAvatarURL string `json:"anonymous_avatar_url"`
-    Alias string `json:"alias"`
-}
 
 var (
 	VOTES_QUERY = fmt.Sprintf(`
@@ -67,59 +39,99 @@ var (
 	names = []string{"Wyatt", "Vivian", "Maria", "Alexander", "Luis", "Aidan", "Mason", "Aiden", "Mackenzie", "Adrian", "Oliver", "Andrea", "Amaya", "Nolan", "Riley", "Robert", "Ryker", "Sara", "Ryan", "Sawyer"}
 )
 
-func GetOrCreateUserByID(db *gorm.DB, id uint, username string) (*User, error) {
+func ConvertAnswerToAPI(answer Answer, id uint) (*AnswerResponse, error) {
+	db := util.GetDb()
+	usr, err := GetUserByID(db, id)
+	if err != nil {
+		return nil, err
+	}
 
-    // Try to find user by ID
-    var user User
-    userResult := db.First(&user, id)
-    if userResult.Error != nil {
-        if userResult.Error == gorm.ErrRecordNotFound {
-            name := names[rand.Intn(len(names))]
+	var avatar, username string
 
-            // Find last alias for this name
-            var lastUser User
-            pattern := fmt.Sprintf("%s%%", name)
-            result := db.Where("alias LIKE ?", pattern).Order("created_at DESC").First(&lastUser)
+	if answer.Anonymous {
+		avatar = util.GenerateAnonymousAvatar(usr.Alias)
+		username = usr.Alias
+	} else {
+		avatar = fmt.Sprintf("https://avatars.githubusercontent.com/u/%d?v=4", usr.ID)
+		username = usr.Username
+	}
 
-            // Extract last number
-            nextNum := 1
-            if result.Error == nil {
-                re := regexp.MustCompile(fmt.Sprintf(`^%s(\d+)$`, name))
-                matches := re.FindStringSubmatch(lastUser.Alias)
-                if len(matches) == 2 {
-                    if n, err := strconv.Atoi(matches[1]); err == nil {
-                        nextNum = n + 1
-                    }
-                }
-            }
+	// recursively convert replies
+	var replies []AnswerResponse
+	for _, reply := range answer.Replies {
+		reply, err := ConvertAnswerToAPI(reply, id)
+		if err != nil {
+			return nil, err
+		}
+		replies = append(replies, *reply)
+	}
 
-            alias := fmt.Sprintf("%s%d", name, nextNum)
+	return &AnswerResponse{
+		ID:        answer.ID,
+		CreatedAt: answer.CreatedAt,
+		UpdatedAt: answer.UpdatedAt,
+		Question:  answer.Question,
+		Parent:    answer.Parent,
+		User:      username,
+		Content:   answer.Content,
+		Upvotes:   answer.Upvotes,
+		Downvotes: answer.Downvotes,
+		Replies:   replies,
+		Anonymous: answer.Anonymous,
+		AvatarURL: avatar,
+	}, nil
 
-            // Not found, create new record
-            user = User{
-                ID:       id,
-                Username: username,
-                Alias:    alias,
-            }
-            if err := db.Create(&user).Error; err != nil {
-                return nil, err
-            }
-            return &user, nil
-        }
-        // Some other error
-        return nil, userResult.Error
-    }
-    // Found
-    return &user, nil
 }
 
-func generateAnonymousAvatar(alias string) string {
-    re := regexp.MustCompile(`^[A-Za-z]+`)
-    match := re.FindString(alias)
-    if match == "" {
-        return ""
-    }
-    return fmt.Sprintf("https://api.dicebear.com/9.x/thumbs/svg?seed=%s", match)
+func GetUserByID(db *gorm.DB, id uint) (*User, error) {
+	var user User
+	if err := db.First(&user, id).Error; err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
+func GetOrCreateUserByID(db *gorm.DB, id uint, username string) (*User, error) {
+	user, err := GetUserByID(db, id)
+	if err == nil {
+		return user, nil
+	}
+	if err != gorm.ErrRecordNotFound {
+		return nil, err
+	}
+
+	// Create new user with unique alias
+	alias := generateUniqueAlias(db)
+	user = &User{
+		ID:       id,
+		Username: username,
+		Alias:    alias,
+	}
+
+	if err := db.Create(user).Error; err != nil {
+		return nil, err
+	}
+	return user, nil
+}
+
+func generateUniqueAlias(db *gorm.DB) string {
+	name := names[rand.Intn(len(names))]
+
+	var lastUser User
+	pattern := fmt.Sprintf("%s%%", name)
+	result := db.Where("alias LIKE ?", pattern).Order("created_at DESC").First(&lastUser)
+
+	nextNum := 1
+	if result.Error == nil {
+		re := regexp.MustCompile(fmt.Sprintf(`^%s(\d+)$`, name))
+		if matches := re.FindStringSubmatch(lastUser.Alias); len(matches) == 2 {
+			if n, err := strconv.Atoi(matches[1]); err == nil {
+				nextNum = n + 1
+			}
+		}
+	}
+
+	return fmt.Sprintf("%s%d", name, nextNum)
 }
 
 // @Summary		Insert a new answer
@@ -183,28 +195,48 @@ func PutAnswerHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-    usr, err := GetOrCreateUserByID(db, user.ID, user.Username)
-    if err != nil {
-        slog.Error("error while getting or creating the user-alias association", "user", user, "err", err)
-        httputil.WriteError(res, http.StatusBadRequest, "could not insert the answer")
-        return
-    }
-    
-	httputil.WriteData(res, http.StatusOK, AnswerResponse{
-		ID:        answer.ID,
-		CreatedAt: answer.CreatedAt,
-		UpdatedAt: answer.UpdatedAt,
-		Question:  answer.Question,
-		Parent:    answer.Parent,
-		User:      user.Username,
-		Content:   answer.Content,
-		Upvotes:   answer.Upvotes,
-		Downvotes: answer.Downvotes,
-		Replies:   answer.Replies,
-		Anonymous: answer.Anonymous,
-        AnonymousAvatarURL:    generateAnonymousAvatar(usr.Alias),
-        Alias: usr.Alias,
-	})
+	usr, err := GetOrCreateUserByID(db, user.ID, user.Username)
+	if err != nil {
+		slog.Error("error while getting or creating the user-alias association", "user", user, "err", err)
+		httputil.WriteError(res, http.StatusBadRequest, "could not insert the answer")
+		return
+	}
+
+	var avatar, username string
+
+	if ans.Anonymous {
+		avatar = util.GenerateAnonymousAvatar(usr.Alias)
+		username = usr.Alias
+	} else {
+		avatar = user.AvatarUrl
+		username = user.Username
+	}
+
+	// recursively convert replies
+	var replies []AnswerResponse
+	for _, reply := range answer.Replies {
+		reply, err := ConvertAnswerToAPI(reply, reply.UserId)
+		if err != nil {
+			return
+		}
+		replies = append(replies, *reply)
+	}
+
+	httputil.WriteData(res, http.StatusOK,
+		AnswerResponse{
+			ID:        answer.ID,
+			CreatedAt: answer.CreatedAt,
+			UpdatedAt: answer.UpdatedAt,
+			Question:  answer.Question,
+			Parent:    answer.Parent,
+			User:      username,
+			Content:   answer.Content,
+			Upvotes:   answer.Upvotes,
+			Downvotes: answer.Downvotes,
+			Replies:   replies,
+			Anonymous: answer.Anonymous,
+			AvatarURL: avatar,
+		})
 }
 
 // @Summary		Get all answers given a question
@@ -286,36 +318,64 @@ func DelAnswerHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	var ans Answer
-	if err := db.First(&ans, uint(aID)).Error; err != nil {
+	var answer Answer
+	if err := db.First(&answer, uint(aID)).Error; err != nil {
 		slog.Error("answer not found", "err", err)
 		httputil.WriteError(res, http.StatusNotFound, "answer not found")
 		return
 	}
 
-	if !user.Admin && ans.UserId != user.ID {
+	if !user.Admin && answer.UserId != user.ID {
 		slog.Error("you are not an admin or the owner of the answer", "err", err)
 		httputil.WriteError(res, http.StatusInternalServerError, "you are not an admin or the owner of the answer")
 		return
 	}
 
-	if err := db.Delete(&ans).Error; err != nil {
+	if err := db.Delete(&answer).Error; err != nil {
 		slog.Error("something went wrong", "err", err)
 		httputil.WriteError(res, http.StatusInternalServerError, "something went wrong")
 		return
 	}
 
+	usr, err := GetOrCreateUserByID(db, user.ID, user.Username)
+	if err != nil {
+		slog.Error("error while getting or creating the user-alias association", "user", user, "err", err)
+		httputil.WriteError(res, http.StatusBadRequest, "could not insert the answer")
+		return
+	}
+
+	var avatar, username string
+
+	if answer.Anonymous {
+		avatar = util.GenerateAnonymousAvatar(usr.Alias)
+		username = usr.Alias
+	} else {
+		avatar = user.AvatarUrl
+		username = user.Username
+	}
+
+	// recursively convert replies
+	var replies []AnswerResponse
+	for _, reply := range answer.Replies {
+		reply, err := ConvertAnswerToAPI(reply, reply.UserId)
+		if err != nil {
+			return
+		}
+		replies = append(replies, *reply)
+	}
+
 	httputil.WriteData(res, http.StatusOK, AnswerResponse{
-		ID:        ans.ID,
-		CreatedAt: ans.CreatedAt,
-		UpdatedAt: ans.UpdatedAt,
-		Question:  ans.Question,
-		Parent:    ans.Parent,
-		User:      user.Username,
-		Content:   ans.Content,
-		Upvotes:   ans.Upvotes,
-		Downvotes: ans.Downvotes,
-		Replies:   ans.Replies,
-		Anonymous: ans.Anonymous,
+		ID:        answer.ID,
+		CreatedAt: answer.CreatedAt,
+		UpdatedAt: answer.UpdatedAt,
+		Question:  answer.Question,
+		Parent:    answer.Parent,
+		User:      username,
+		Content:   answer.Content,
+		Upvotes:   answer.Upvotes,
+		Downvotes: answer.Downvotes,
+		Replies:   replies,
+		Anonymous: answer.Anonymous,
+		AvatarURL: avatar,
 	})
 }

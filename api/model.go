@@ -23,8 +23,6 @@ type Answer struct {
 	Replies   []Answer `json:"replies" gorm:"foreignKey:Parent;references:ID"`
 	Votes     []Vote   `json:"-" gorm:"foreignKey:Answer;references:ID"`
 	Anonymous bool     `json:"anonymous"`
-
-
 }
 
 type Question struct {
@@ -59,4 +57,58 @@ type User struct {
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `json:"-" gorm:"index"`
+}
+
+type PutAnswerRequest struct {
+	Question  uint   `json:"question"`
+	Parent    *uint  `json:"parent"`
+	Content   string `json:"content"`
+	Anonymous bool   `json:"anonymous"`
+}
+
+type AnswerResponse struct {
+	// taken from from gorm.Model, so we can json strigify properly
+	ID        uint      `json:"id"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+
+	Question uint  `json:"question"`
+	Parent   *uint `json:"parent"`
+
+	User      string           `json:"user"`
+	Content   string           `json:"content"`
+	Upvotes   uint32           `json:"upvotes"`
+	Downvotes uint32           `json:"downvotes"`
+	Replies   []AnswerResponse `json:"replies"`
+
+	Anonymous bool   `json:"anonymous"`
+	AvatarURL string `json:"anonymous_avatar_url"`
+}
+
+type VoteValue int8
+
+type PutVoteRequest struct {
+	Vote VoteValue `json:"vote"`
+}
+
+type VoteResponse struct {
+	Answer uint   `json:"answer"`
+	User   string `json:"user"`
+	Vote   int8   `json:"vote"`
+
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
+type QuestionResponse struct {
+	// taken from from gorm.Model, so we can json strigify properly
+	ID        uint           `json:"id"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	DeletedAt gorm.DeletedAt `json:"-"`
+
+	Document string           `json:"document"`
+	Start    uint32           `json:"start"`
+	End      uint32           `json:"end"`
+	Answers  []AnswerResponse `json:"answers"`
 }

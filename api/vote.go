@@ -13,26 +13,11 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-type VoteValue int8
-
 const (
 	VoteUp   VoteValue = 1
 	VoteNone VoteValue = 0
 	VoteDown VoteValue = -1
 )
-
-type PutVoteRequest struct {
-	Vote VoteValue `json:"vote"`
-}
-
-type VoteResponse struct {
-	Answer uint   `json:"answer"`
-	User   string `json:"user"`
-	Vote   int8   `json:"vote"`
-
-	CreatedAt time.Time
-	UpdatedAt time.Time
-}
 
 // get given vote to an answer
 func GetUserVote(res http.ResponseWriter, req *http.Request) {
