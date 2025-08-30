@@ -1,9 +1,10 @@
 package api
 
 import (
+	"crypto/rand"
 	"encoding/json"
 	"fmt"
-	"math/rand"
+	"math/big"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -101,7 +102,11 @@ func GetOrCreateUserByID(db *gorm.DB, id uint, username string) (*User, error) {
 	}
 
 	// Create new user with unique alias
-	alias := generateUniqueAlias(db)
+	alias, err := generateUniqueAlias(db)
+	if err != nil {
+		return nil, err
+	}
+
 	user = &User{
 		ID:       id,
 		Username: username,
@@ -114,9 +119,14 @@ func GetOrCreateUserByID(db *gorm.DB, id uint, username string) (*User, error) {
 	return user, nil
 }
 
-func generateUniqueAlias(db *gorm.DB) string {
-	name := names[rand.Intn(len(names))]
+func generateUniqueAlias(db *gorm.DB) (string, error) {
+	// Generate cryptographically secure random index
+	nameIndex, err := rand.Int(rand.Reader, big.NewInt(int64(len(names))))
+	if err != nil {
+		return "", fmt.Errorf("failed to generate random name index: %w", err)
+	}
 
+	name := names[nameIndex.Int64()]
 	var lastUser User
 	pattern := fmt.Sprintf("%s%%", name)
 	result := db.Where("alias LIKE ?", pattern).Order("created_at DESC").First(&lastUser)
@@ -131,7 +141,7 @@ func generateUniqueAlias(db *gorm.DB) string {
 		}
 	}
 
-	return fmt.Sprintf("%s%d", name, nextNum)
+	return fmt.Sprintf("%s%d", name, nextNum), nil
 }
 
 // @Summary		Insert a new answer
