@@ -13,17 +13,11 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-type VoteValue int8
-
 const (
 	VoteUp   VoteValue = 1
 	VoteNone VoteValue = 0
 	VoteDown VoteValue = -1
 )
-
-type PutVoteRequest struct {
-	Vote VoteValue `json:"vote"`
-}
 
 // get given vote to an answer
 func GetUserVote(res http.ResponseWriter, req *http.Request) {
@@ -43,11 +37,18 @@ func GetUserVote(res http.ResponseWriter, req *http.Request) {
 	}
 
 	var vote Vote
-	if err = db.First(&vote, "answer = ? and \"user\" = ?", ansID, user.Username).Error; err != nil {
+	if err = db.First(&vote, "answer = ? and \"user\" = ?", ansID, user.ID).Error; err != nil {
 		httputil.WriteError(res, http.StatusBadRequest, "the referenced vote does not exist")
 		return
 	}
-	httputil.WriteData(res, http.StatusOK, vote)
+
+	httputil.WriteData(res, http.StatusOK, VoteResponse{
+		Answer:    vote.Answer,
+		User:      user.Username,
+		Vote:      int8(vote.Vote),
+		CreatedAt: vote.CreatedAt,
+		UpdatedAt: vote.UpdatedAt,
+	})
 }
 
 // @Summary		Insert a vote
@@ -97,12 +98,12 @@ func PostVote(res http.ResponseWriter, req *http.Request) {
 
 	vote := Vote{
 		Answer: ans.ID,
-		User:   user.Username,
+		UserId: user.ID,
 		Vote:   int8(v.Vote),
 	}
 	if v.Vote == VoteUp || v.Vote == VoteDown {
 		err := db.Clauses(clause.OnConflict{
-			Columns:   []clause.Column{{Name: "answer"}, {Name: "user"}},
+			Columns:   []clause.Column{{Name: "answer"}, {Name: "user_id"}},
 			DoUpdates: clause.AssignmentColumns([]string{"vote"}),
 		}).Create(&vote).Error
 		if err != nil {
@@ -110,7 +111,7 @@ func PostVote(res http.ResponseWriter, req *http.Request) {
 			return
 		}
 	} else if v.Vote == VoteNone {
-		if err := db.Unscoped().Delete(&Vote{Answer: ans.ID, User: user.Username}).Error; err != nil {
+		if err := db.Unscoped().Delete(&Vote{Answer: ans.ID, UserId: user.ID}).Error; err != nil {
 			httputil.WriteError(res, http.StatusBadRequest, "could not delete the previous vote")
 			return
 		}
@@ -119,5 +120,11 @@ func PostVote(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	httputil.WriteData(res, http.StatusOK, vote)
+	httputil.WriteData(res, http.StatusOK, VoteResponse{
+		Answer:    vote.Answer,
+		User:      user.Username,
+		Vote:      int8(vote.Vote),
+		CreatedAt: vote.CreatedAt,
+		UpdatedAt: vote.UpdatedAt,
+	})
 }
