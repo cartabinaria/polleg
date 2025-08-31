@@ -20,7 +20,6 @@ var (
            count(case votes.vote when %d then 1 else null end) as upvotes,
            count(case votes.vote when %d then 1 else null end) as downvotes
   from     votes
-  where deleted_at is NULL
   group by answer
 `, VoteUp, VoteDown)
 	ANSWERS_QUERY = fmt.Sprintf(`
@@ -29,11 +28,6 @@ var (
   full join     (%s) on answer = answers.id
   where    deleted_at is NULL and answers.parent is NULL and answers.question = ?
 `, VOTES_QUERY)
-	REPLIES_QUERY = `
-  select   *
-  from     answers
-  where    deleted_at is NULL and answers.parent IN ?
-`
 )
 
 func ConvertAnswerToAPI(answer models.Answer, id uint) (*models.AnswerResponse, error) {
@@ -215,7 +209,7 @@ func GetQuestionHandler(res http.ResponseWriter, req *http.Request) {
 		answersIndex[answer.ID] = i
 	}
 	var replies []models.Answer
-	if err := db.Raw(REPLIES_QUERY, answersIDs).Scan(&replies).Error; err != nil {
+	if err := db.Model(&models.Answer{}).Where("deleted_at is NULL AND parent IN ?", answersIDs).Find(&replies).Error; err != nil {
 		slog.Error("could not fetch replies", "err", err)
 		httputil.WriteError(res, http.StatusInternalServerError, "could not fetch replies")
 		return

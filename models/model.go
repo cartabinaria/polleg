@@ -46,7 +46,6 @@ type Vote struct {
 	// taken from from gorm.Model
 	CreatedAt time.Time
 	UpdatedAt time.Time
-	DeletedAt gorm.DeletedAt `gorm:"index"`
 }
 
 type User struct {

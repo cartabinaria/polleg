@@ -102,7 +102,9 @@ func PostVote(res http.ResponseWriter, req *http.Request) {
 		UserId: user.ID,
 		Vote:   int8(v.Vote),
 	}
-	if v.Vote == VoteUp || v.Vote == VoteDown {
+	switch v.Vote {
+	case VoteUp, VoteDown:
+		// If a vote already exists, and
 		err := db.Clauses(clause.OnConflict{
 			Columns:   []clause.Column{{Name: "answer"}, {Name: "user_id"}},
 			DoUpdates: clause.AssignmentColumns([]string{"vote"}),
@@ -111,12 +113,19 @@ func PostVote(res http.ResponseWriter, req *http.Request) {
 			httputil.WriteError(res, http.StatusInternalServerError, "could not update your vote")
 			return
 		}
-	} else if v.Vote == VoteNone {
-		if err := db.Unscoped().Delete(&models.Vote{Answer: ans.ID, UserId: user.ID}).Error; err != nil {
-			httputil.WriteError(res, http.StatusBadRequest, "could not delete the previous vote")
+
+	case VoteNone:
+		result := db.Where("answer = ? AND user_id = ?", ans.ID, user.ID).Delete(&models.Vote{})
+		if result.Error != nil {
+			httputil.WriteError(res, http.StatusInternalServerError, "could not delete the previous vote")
 			return
 		}
-	} else {
+		if result.RowsAffected == 0 {
+			httputil.WriteError(res, http.StatusNotFound, "no vote found to delete")
+			return
+		}
+
+	default:
 		httputil.WriteError(res, http.StatusBadRequest, "the vote value must be either 1, -1 or 0")
 		return
 	}
