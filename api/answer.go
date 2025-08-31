@@ -16,17 +16,19 @@ import (
 
 var (
 	VOTES_QUERY = fmt.Sprintf(`
-  select   votes.answer,
-           count(case votes.vote when %d then 1 else null end) as upvotes,
-           count(case votes.vote when %d then 1 else null end) as downvotes
-  from     votes
-  group by answer
+  SELECT votes.answer,
+				 COUNT(CASE votes.vote WHEN %d THEN 1 ELSE NULL END) as upvotes,
+				 COUNT(CASE votes.vote WHEN %d THEN 1 ELSE NULL END) as downvotes
+  FROM votes
+  GROUP BY Answer
 `, VoteUp, VoteDown)
 	ANSWERS_QUERY = fmt.Sprintf(`
-  select   *
-  from     answers
-  full join     (%s) on answer = answers.id
-  where    deleted_at is NULL and answers.parent is NULL and answers.question = ?
+  SELECT *
+  FROM answers
+  LEFT JOIN (%s) vote_counts ON vote_counts.answer = answers.id
+  WHERE answers.deleted_at is NULL
+		AND answers.parent is NULL
+		AND answers.question = ?
 `, VOTES_QUERY)
 )
 
