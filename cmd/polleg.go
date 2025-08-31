@@ -42,7 +42,11 @@ var (
 // @license.url	https://www.gnu.org/licenses/agpl-3.0.en.html
 // @BasePath		/
 func main() {
-	err := loadConfig()
+	if len(os.Args) < 2 {
+		fmt.Println("Usage: polleg <config-file>")
+		os.Exit(1)
+	}
+	err := loadConfig(os.Args[1])
 	if err != nil {
 		slog.Error("failed to load config", "err", err)
 		os.Exit(1)
@@ -94,8 +98,8 @@ func main() {
 	}
 }
 
-func loadConfig() (err error) {
-	file, err := os.Open("config.toml")
+func loadConfig(path string) (err error) {
+	file, err := os.Open(path)
 	if err != nil {
 		return fmt.Errorf("failed to open config file: %w", err)
 	}
