@@ -84,7 +84,7 @@ func main() {
 	// put up/down votes to an answer
 	mux.HandleFunc("/answers/:id/vote", api.PostVote)
 	// insert new doc and quesions
-	mux.HandleFunc("/documents", api.PutDocumentHandler)
+	mux.HandleFunc("/documents", api.PostDocumentHandler)
 
 	mux.HandleFunc("/answers/:id", api.DelAnswerHandler)
 	// proposal managers

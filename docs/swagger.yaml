@@ -1,7 +1,39 @@
 basePath: /
 definitions:
-  api.Answer:
+  api.Coord:
     properties:
+      end:
+        type: integer
+      start:
+        type: integer
+    type: object
+  api.Document:
+    properties:
+      id:
+        type: string
+      questions:
+        items:
+          $ref: '#/definitions/models.Question'
+        type: array
+    type: object
+  api.PostDocumentRequest:
+    properties:
+      coords:
+        items:
+          $ref: '#/definitions/api.Coord'
+        type: array
+      id:
+        type: string
+    type: object
+  httputil.ApiError:
+    properties:
+      error:
+        type: string
+    type: object
+  models.Answer:
+    properties:
+      anonymous:
+        type: boolean
       content:
         type: string
       created_at:
@@ -17,7 +49,34 @@ definitions:
         type: integer
       replies:
         items:
-          $ref: '#/definitions/api.Answer'
+          $ref: '#/definitions/models.Answer'
+        type: array
+      updated_at:
+        type: string
+      upvotes:
+        type: integer
+    type: object
+  models.AnswerResponse:
+    properties:
+      anonymous:
+        type: boolean
+      anonymous_avatar_url:
+        type: string
+      content:
+        type: string
+      created_at:
+        type: string
+      downvotes:
+        type: integer
+      id:
+        type: integer
+      parent:
+        type: integer
+      question:
+        type: integer
+      replies:
+        items:
+          $ref: '#/definitions/models.AnswerResponse'
         type: array
       updated_at:
         type: string
@@ -26,24 +85,10 @@ definitions:
       user:
         type: string
     type: object
-  api.Coord:
+  models.PostAnswerRequest:
     properties:
-      end:
-        type: integer
-      start:
-        type: integer
-    type: object
-  api.Document:
-    properties:
-      id:
-        type: string
-      questions:
-        items:
-          $ref: '#/definitions/api.Question'
-        type: array
-    type: object
-  api.PutAnswerRequest:
-    properties:
+      anonymous:
+        type: boolean
       content:
         type: string
       parent:
@@ -51,20 +96,11 @@ definitions:
       question:
         type: integer
     type: object
-  api.PutDocumentRequest:
-    properties:
-      coords:
-        items:
-          $ref: '#/definitions/api.Coord'
-        type: array
-      id:
-        type: string
-    type: object
-  api.Question:
+  models.Question:
     properties:
       answers:
         items:
-          $ref: '#/definitions/api.Answer'
+          $ref: '#/definitions/models.Answer'
         type: array
       created_at:
         type: string
@@ -80,15 +116,31 @@ definitions:
       updated_at:
         type: string
     type: object
-  api.Vote:
+  models.QuestionResponse:
+    properties:
+      answers:
+        items:
+          $ref: '#/definitions/models.AnswerResponse'
+        type: array
+      created_at:
+        type: string
+      document:
+        type: string
+      end:
+        type: integer
+      id:
+        type: integer
+      start:
+        type: integer
+      updated_at:
+        type: string
+    type: object
+  models.VoteResponse:
     properties:
       answer:
         type: integer
       createdAt:
-        description: taken from from gorm.Model
         type: string
-      deletedAt:
-        $ref: '#/definitions/gorm.DeletedAt'
       updatedAt:
         type: string
       user:
@@ -96,25 +148,12 @@ definitions:
       vote:
         type: integer
     type: object
-  gorm.DeletedAt:
-    properties:
-      time:
-        type: string
-      valid:
-        description: Valid is true if Time is not NULL
-        type: boolean
-    type: object
-  util.ApiError:
-    properties:
-      error:
-        type: string
-    type: object
 info:
   contact:
     email: gabriele.genovese2@studio.unibo.it
     name: Gabriele Genovese
   description: This is the backend API for Polleg that allows unibo students to answer
-    exam exercises directly on the CartaBinaria website
+    exam exercises directly on the cartabinaria website
   license:
     name: AGPL-3.0
     url: https://www.gnu.org/licenses/agpl-3.0.en.html
@@ -136,16 +175,16 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/api.Vote'
+            $ref: '#/definitions/models.VoteResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/util.ApiError'
+            $ref: '#/definitions/httputil.ApiError'
       summary: Insert a vote
       tags:
       - vote
   /answers:
-    put:
+    post:
       description: Insert a new answer under a question
       parameters:
       - description: Answer data to insert
@@ -153,18 +192,18 @@ paths:
         name: answerReq
         required: true
         schema:
-          $ref: '#/definitions/api.PutAnswerRequest'
+          $ref: '#/definitions/models.PostAnswerRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/api.Answer'
+            $ref: '#/definitions/models.AnswerResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/util.ApiError'
+            $ref: '#/definitions/httputil.ApiError'
       summary: Insert a new answer
       tags:
       - answer
@@ -182,17 +221,15 @@ paths:
       responses:
         "200":
           description: OK
-          schema:
-            $ref: '#/definitions/api.Answer'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/util.ApiError'
+            $ref: '#/definitions/httputil.ApiError'
       summary: Delete an answer
       tags:
       - answer
   /documents:
-    put:
+    post:
       description: Insert a new document with all the questions initialised
       parameters:
       - description: Doc request body
@@ -200,7 +237,7 @@ paths:
         name: docRequest
         required: true
         schema:
-          $ref: '#/definitions/api.PutDocumentRequest'
+          $ref: '#/definitions/api.PostDocumentRequest'
       produces:
       - application/json
       responses:
@@ -211,7 +248,7 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/util.ApiError'
+            $ref: '#/definitions/httputil.ApiError'
       summary: Insert a new document
       tags:
       - document
@@ -234,7 +271,7 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/util.ApiError'
+            $ref: '#/definitions/httputil.ApiError'
       summary: Get a document's divisions
       tags:
       - document
@@ -254,12 +291,12 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/api.Answer'
+              $ref: '#/definitions/models.QuestionResponse'
             type: array
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/util.ApiError'
+            $ref: '#/definitions/httputil.ApiError'
       summary: Get all answers given a question
       tags:
       - question

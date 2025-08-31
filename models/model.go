@@ -58,7 +58,7 @@ type User struct {
 	DeletedAt gorm.DeletedAt `json:"-" gorm:"index"`
 }
 
-type PutAnswerRequest struct {
+type PostAnswerRequest struct {
 	Question  uint   `json:"question"`
 	Parent    *uint  `json:"parent"`
 	Content   string `json:"content"`
@@ -85,7 +85,7 @@ type AnswerResponse struct {
 
 type VoteValue int8
 
-type PutVoteRequest struct {
+type PostVoteRequest struct {
 	Vote VoteValue `json:"vote"`
 }
 

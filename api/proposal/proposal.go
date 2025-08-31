@@ -16,8 +16,8 @@ type DocumentProposal struct {
 
 func ProposalHandler(res http.ResponseWriter, req *http.Request) {
 	switch req.Method {
-	case http.MethodPut:
-		putProposal(res, req)
+	case http.MethodPost:
+		postProposal(res, req)
 	case http.MethodGet:
 		getAllProposalHandler(res, req)
 	default:
@@ -26,11 +26,11 @@ func ProposalHandler(res http.ResponseWriter, req *http.Request) {
 }
 
 // Insert a question proposal (copy pasted from document.go)
-func putProposal(res http.ResponseWriter, req *http.Request) {
+func postProposal(res http.ResponseWriter, req *http.Request) {
 	db := util.GetDb()
 
 	// decode data
-	var data api.PutDocumentRequest
+	var data api.PostDocumentRequest
 	if err := json.NewDecoder(req.Body).Decode(&data); err != nil {
 		httputil.WriteError(res, http.StatusBadRequest, "couldn't decode body")
 		return

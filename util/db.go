@@ -2,6 +2,7 @@ package util
 
 import (
 	"fmt"
+
 	"github.com/cartabinaria/polleg/models"
 	slogGorm "github.com/orandin/slog-gorm"
 	"gorm.io/driver/postgres"

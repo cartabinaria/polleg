@@ -79,10 +79,10 @@ func ConvertAnswerToAPI(answer models.Answer, id uint) (*models.AnswerResponse, 
 // @Summary		Insert a new answer
 // @Description	Insert a new answer under a question
 // @Tags			answer
-// @Param			answerReq	body	PostAnswerRequest	true	"Answer data to insert"
+// @Param			answerReq	body	models.PostAnswerRequest	true	"Answer data to insert"
 // @Produce		json
-// @Success		200	{object}	Answer
-// @Failure		400	{object}	util.ApiError
+// @Success		200	{object}	models.AnswerResponse
+// @Failure		400	{object}	httputil.ApiError
 // @Router			/answers [post]
 func PostAnswerHandler(res http.ResponseWriter, req *http.Request) {
 	// Check method POST is used
@@ -93,7 +93,7 @@ func PostAnswerHandler(res http.ResponseWriter, req *http.Request) {
 	db := util.GetDb()
 	user := middleware.GetUser(req)
 
-	var ans models.PutAnswerRequest
+	var ans models.PostAnswerRequest
 	err := json.NewDecoder(req.Body).Decode(&ans)
 	if err != nil {
 		httputil.WriteError(res, http.StatusBadRequest, fmt.Sprintf("decode error: %v", err))
@@ -175,8 +175,8 @@ func PostAnswerHandler(res http.ResponseWriter, req *http.Request) {
 // @Tags			question
 // @Param			id	path	string	true	"Answer id"
 // @Produce		json
-// @Success		200	{array}		Answer
-// @Failure		400	{object}	util.ApiError
+// @Success		200	{array}		models.QuestionResponse
+// @Failure		400	{object}	httputil.ApiError
 // @Router			/questions/{id} [get]
 func GetQuestionHandler(res http.ResponseWriter, req *http.Request) {
 	// Check method GET is used
@@ -251,8 +251,8 @@ func GetQuestionHandler(res http.ResponseWriter, req *http.Request) {
 // @Tags			answer
 // @Param			id	path	string	true	"Answer id"
 // @Produce		json
-// @Success		200	{object}	Answer
-// @Failure		400	{object}	util.ApiError
+// @Success		200	{object}	nil
+// @Failure		400	{object}	httputil.ApiError
 // @Router			/answers/{id} [delete]
 func DelAnswerHandler(res http.ResponseWriter, req *http.Request) {
 	if req.Method != http.MethodDelete {

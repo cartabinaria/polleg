@@ -21,7 +21,7 @@ type Coord struct {
 	End   uint32 `json:"end"`
 }
 
-type PutDocumentRequest struct {
+type PostDocumentRequest struct {
 	ID     string  `json:"id"`
 	Coords []Coord `json:"coords"`
 }
@@ -29,26 +29,27 @@ type PutDocumentRequest struct {
 // @Summary		Insert a new document
 // @Description	Insert a new document with all the questions initialised
 // @Tags			document
-// @Param			docRequest	body	PutDocumentRequest	true	"Doc request body"
+// @Param			docRequest	body	PostDocumentRequest	true	"Doc request body"
 // @Produce		json
 // @Success		200	{object}	Document
-// @Failure		400	{object}	util.ApiError
-// @Router			/documents [put]
-func PutDocumentHandler(res http.ResponseWriter, req *http.Request) {
-	// only members of the staff can add a document
-	if !middleware.GetAdmin(req) {
-		httputil.WriteError(res, http.StatusForbidden, "you are not admin")
+// @Failure		400	{object}	httputil.ApiError
+// @Router			/documents [post]
+func PostDocumentHandler(res http.ResponseWriter, req *http.Request) {
+	// Check method POST is used
+	if req.Method != http.MethodPost {
+		httputil.WriteError(res, http.StatusMethodNotAllowed, "invalid method")
 		return
 	}
-	// Check method PUT is used
-	if req.Method != http.MethodPut {
-		httputil.WriteError(res, http.StatusMethodNotAllowed, "invalid method")
+
+	// Only members of the staff can add a document
+	if !middleware.GetAdmin(req) {
+		httputil.WriteError(res, http.StatusForbidden, "you are not admin")
 		return
 	}
 	db := util.GetDb()
 
 	// decode data
-	var data PutDocumentRequest
+	var data PostDocumentRequest
 	if err := json.NewDecoder(req.Body).Decode(&data); err != nil {
 		httputil.WriteError(res, http.StatusBadRequest, "couldn't decode body")
 		return
@@ -82,7 +83,7 @@ func PutDocumentHandler(res http.ResponseWriter, req *http.Request) {
 // @Param			id	path	string	true	"document id"
 // @Produce		json
 // @Success		200	{object}	Document
-// @Failure		400	{object}	util.ApiError
+// @Failure		400	{object}	httputil.ApiError
 // @Router			/documents/{id} [get]
 func GetDocumentHandler(res http.ResponseWriter, req *http.Request) {
 	// Check method GET is used

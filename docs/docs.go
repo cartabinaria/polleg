@@ -45,20 +45,20 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/api.Vote"
+                            "$ref": "#/definitions/models.VoteResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/util.ApiError"
+                            "$ref": "#/definitions/httputil.ApiError"
                         }
                     }
                 }
             }
         },
         "/answers": {
-            "put": {
+            "post": {
                 "description": "Insert a new answer under a question",
                 "produces": [
                     "application/json"
@@ -74,7 +74,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/api.PutAnswerRequest"
+                            "$ref": "#/definitions/models.PostAnswerRequest"
                         }
                     }
                 ],
@@ -82,13 +82,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/api.Answer"
+                            "$ref": "#/definitions/models.AnswerResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/util.ApiError"
+                            "$ref": "#/definitions/httputil.ApiError"
                         }
                     }
                 }
@@ -115,22 +115,19 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/api.Answer"
-                        }
+                        "description": "OK"
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/util.ApiError"
+                            "$ref": "#/definitions/httputil.ApiError"
                         }
                     }
                 }
             }
         },
         "/documents": {
-            "put": {
+            "post": {
                 "description": "Insert a new document with all the questions initialised",
                 "produces": [
                     "application/json"
@@ -146,7 +143,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/api.PutDocumentRequest"
+                            "$ref": "#/definitions/api.PostDocumentRequest"
                         }
                     }
                 ],
@@ -160,7 +157,7 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/util.ApiError"
+                            "$ref": "#/definitions/httputil.ApiError"
                         }
                     }
                 }
@@ -195,7 +192,7 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/util.ApiError"
+                            "$ref": "#/definitions/httputil.ApiError"
                         }
                     }
                 }
@@ -226,14 +223,14 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/api.Answer"
+                                "$ref": "#/definitions/models.QuestionResponse"
                             }
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/util.ApiError"
+                            "$ref": "#/definitions/httputil.ApiError"
                         }
                     }
                 }
@@ -241,9 +238,59 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "api.Answer": {
+        "api.Coord": {
             "type": "object",
             "properties": {
+                "end": {
+                    "type": "integer"
+                },
+                "start": {
+                    "type": "integer"
+                }
+            }
+        },
+        "api.Document": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "questions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.Question"
+                    }
+                }
+            }
+        },
+        "api.PostDocumentRequest": {
+            "type": "object",
+            "properties": {
+                "coords": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/api.Coord"
+                    }
+                },
+                "id": {
+                    "type": "string"
+                }
+            }
+        },
+        "httputil.ApiError": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.Answer": {
+            "type": "object",
+            "properties": {
+                "anonymous": {
+                    "type": "boolean"
+                },
                 "content": {
                     "type": "string"
                 },
@@ -266,7 +313,48 @@ const docTemplate = `{
                 "replies": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/api.Answer"
+                        "$ref": "#/definitions/models.Answer"
+                    }
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "upvotes": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.AnswerResponse": {
+            "type": "object",
+            "properties": {
+                "anonymous": {
+                    "type": "boolean"
+                },
+                "anonymous_avatar_url": {
+                    "type": "string"
+                },
+                "content": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "downvotes": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "parent": {
+                    "type": "integer"
+                },
+                "question": {
+                    "type": "integer"
+                },
+                "replies": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.AnswerResponse"
                     }
                 },
                 "updated_at": {
@@ -280,34 +368,12 @@ const docTemplate = `{
                 }
             }
         },
-        "api.Coord": {
+        "models.PostAnswerRequest": {
             "type": "object",
             "properties": {
-                "end": {
-                    "type": "integer"
+                "anonymous": {
+                    "type": "boolean"
                 },
-                "start": {
-                    "type": "integer"
-                }
-            }
-        },
-        "api.Document": {
-            "type": "object",
-            "properties": {
-                "id": {
-                    "type": "string"
-                },
-                "questions": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/api.Question"
-                    }
-                }
-            }
-        },
-        "api.PutAnswerRequest": {
-            "type": "object",
-            "properties": {
                 "content": {
                     "type": "string"
                 },
@@ -319,27 +385,13 @@ const docTemplate = `{
                 }
             }
         },
-        "api.PutDocumentRequest": {
-            "type": "object",
-            "properties": {
-                "coords": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/api.Coord"
-                    }
-                },
-                "id": {
-                    "type": "string"
-                }
-            }
-        },
-        "api.Question": {
+        "models.Question": {
             "type": "object",
             "properties": {
                 "answers": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/api.Answer"
+                        "$ref": "#/definitions/models.Answer"
                     }
                 },
                 "created_at": {
@@ -363,18 +415,43 @@ const docTemplate = `{
                 }
             }
         },
-        "api.Vote": {
+        "models.QuestionResponse": {
+            "type": "object",
+            "properties": {
+                "answers": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.AnswerResponse"
+                    }
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "document": {
+                    "type": "string"
+                },
+                "end": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "start": {
+                    "type": "integer"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.VoteResponse": {
             "type": "object",
             "properties": {
                 "answer": {
                     "type": "integer"
                 },
                 "createdAt": {
-                    "description": "taken from from gorm.Model",
                     "type": "string"
-                },
-                "deletedAt": {
-                    "$ref": "#/definitions/gorm.DeletedAt"
                 },
                 "updatedAt": {
                     "type": "string"
@@ -384,26 +461,6 @@ const docTemplate = `{
                 },
                 "vote": {
                     "type": "integer"
-                }
-            }
-        },
-        "gorm.DeletedAt": {
-            "type": "object",
-            "properties": {
-                "time": {
-                    "type": "string"
-                },
-                "valid": {
-                    "description": "Valid is true if Time is not NULL",
-                    "type": "boolean"
-                }
-            }
-        },
-        "util.ApiError": {
-            "type": "object",
-            "properties": {
-                "error": {
-                    "type": "string"
                 }
             }
         }

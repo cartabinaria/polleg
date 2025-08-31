@@ -57,7 +57,7 @@ func GetUserVote(res http.ResponseWriter, req *http.Request) {
 // @Tags			vote
 // @Produce		json
 // @Param			id	path		string	true	"code query parameter"
-// @Success		200	{object}	Vote
+// @Success		200	{object}	models.VoteResponse
 // @Failure		400	{object}	httputil.ApiError
 // @Router			/answer/{id}/vote [post]
 func PostVote(res http.ResponseWriter, req *http.Request) {
@@ -80,7 +80,7 @@ func PostVote(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	var v models.PutVoteRequest
+	var v models.PostVoteRequest
 	err = json.NewDecoder(req.Body).Decode(&v)
 	if err != nil {
 		httputil.WriteError(res, http.StatusBadRequest, fmt.Sprintf("decode error: %v", err))
