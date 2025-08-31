@@ -1,19 +1,12 @@
-# `polleg`
+# Polleg
 
-Progetto che permette agli studenti di rispondere agli esercizi delle prove
-d'esame direttamente sul sito di CartaBinaria.
-
-## Todo
-
-- gestire l'upload di immagini
-- migliorare la documentazione delle api con swaggo
-- implementare per bene il sistema delle proposte
-- aggiungere un api post per la modifica di una risposta
+Polleg is a web service for students to answer exam exercises directly on the
+CartaBinaria website.
 
 ## Usage
 
 ```golang
-go run cmd/polleg.go
+go run cmd/polleg.go <config-file>
 ```
 
 To generate the swagger documentation use
