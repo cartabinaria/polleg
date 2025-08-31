@@ -1,20 +1,17 @@
 package api
 
 import (
-	"crypto/rand"
 	"encoding/json"
 	"fmt"
-	"math/big"
 	"net/http"
-	"regexp"
 	"strconv"
 
 	"github.com/cartabinaria/auth/pkg/httputil"
 	"github.com/cartabinaria/auth/pkg/middleware"
+	"github.com/cartabinaria/polleg/models"
 	"github.com/cartabinaria/polleg/util"
 	"github.com/kataras/muxie"
 	"golang.org/x/exp/slog"
-	"gorm.io/gorm"
 )
 
 var (
@@ -37,12 +34,11 @@ var (
   from     answers
   where    deleted_at is NULL and answers.parent IN ?
 `
-	names = []string{"Wyatt", "Vivian", "Maria", "Alexander", "Luis", "Aidan", "Mason", "Aiden", "Mackenzie", "Adrian", "Oliver", "Andrea", "Amaya", "Nolan", "Riley", "Robert", "Ryker", "Sara", "Ryan", "Sawyer"}
 )
 
-func ConvertAnswerToAPI(answer Answer, id uint) (*AnswerResponse, error) {
+func ConvertAnswerToAPI(answer models.Answer, id uint) (*models.AnswerResponse, error) {
 	db := util.GetDb()
-	usr, err := GetUserByID(db, id)
+	usr, err := util.GetUserByID(db, id)
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +54,7 @@ func ConvertAnswerToAPI(answer Answer, id uint) (*AnswerResponse, error) {
 	}
 
 	// recursively convert replies
-	var replies []AnswerResponse
+	var replies []models.AnswerResponse
 	for _, reply := range answer.Replies {
 		reply, err := ConvertAnswerToAPI(reply, id)
 		if err != nil {
@@ -67,7 +63,7 @@ func ConvertAnswerToAPI(answer Answer, id uint) (*AnswerResponse, error) {
 		replies = append(replies, *reply)
 	}
 
-	return &AnswerResponse{
+	return &models.AnswerResponse{
 		ID:        answer.ID,
 		CreatedAt: answer.CreatedAt,
 		UpdatedAt: answer.UpdatedAt,
@@ -82,66 +78,6 @@ func ConvertAnswerToAPI(answer Answer, id uint) (*AnswerResponse, error) {
 		AvatarURL: avatar,
 	}, nil
 
-}
-
-func GetUserByID(db *gorm.DB, id uint) (*User, error) {
-	var user User
-	if err := db.First(&user, id).Error; err != nil {
-		return nil, err
-	}
-	return &user, nil
-}
-
-func GetOrCreateUserByID(db *gorm.DB, id uint, username string) (*User, error) {
-	user, err := GetUserByID(db, id)
-	if err == nil {
-		return user, nil
-	}
-	if err != gorm.ErrRecordNotFound {
-		return nil, err
-	}
-
-	// Create new user with unique alias
-	alias, err := generateUniqueAlias(db)
-	if err != nil {
-		return nil, err
-	}
-
-	user = &User{
-		ID:       id,
-		Username: username,
-		Alias:    alias,
-	}
-
-	if err := db.Create(user).Error; err != nil {
-		return nil, err
-	}
-	return user, nil
-}
-
-func generateUniqueAlias(db *gorm.DB) (string, error) {
-	// Generate cryptographically secure random index
-	nameIndex, err := rand.Int(rand.Reader, big.NewInt(int64(len(names))))
-	if err != nil {
-		return "", fmt.Errorf("failed to generate random name index: %w", err)
-	}
-
-	name := names[nameIndex.Int64()]
-	var lastUser User
-	pattern := fmt.Sprintf("%s%%", name)
-	result := db.Where("alias LIKE ?", pattern).Order("created_at DESC").First(&lastUser)
-
-	nextNum := 1
-	if result.Error == nil {
-		re := regexp.MustCompile(fmt.Sprintf(`^%s(\d+)$`, name))
-		if matches := re.FindStringSubmatch(lastUser.Alias); len(matches) == 2 {
-			if n, err := strconv.Atoi(matches[1]); err == nil {
-				nextNum = n + 1
-			}
-		}
-	}
-
-	return fmt.Sprintf("%s%d", name, nextNum), nil
 }
 
 // @Summary		Insert a new answer
@@ -161,21 +97,21 @@ func PutAnswerHandler(res http.ResponseWriter, req *http.Request) {
 	db := util.GetDb()
 	user := middleware.GetUser(req)
 
-	var ans PutAnswerRequest
+	var ans models.PutAnswerRequest
 	err := json.NewDecoder(req.Body).Decode(&ans)
 	if err != nil {
 		httputil.WriteError(res, http.StatusBadRequest, fmt.Sprintf("decode error: %v", err))
 		return
 	}
 
-	var quest Question
+	var quest models.Question
 	if err := db.First(&quest, ans.Question).Error; err != nil {
 		httputil.WriteError(res, http.StatusBadRequest, "the referenced question does not exist")
 		return
 	}
 
 	if ans.Parent != nil {
-		var Parent Answer
+		var Parent models.Answer
 		if err = db.First(&Parent, ans.Parent).Error; err != nil {
 			httputil.WriteError(res, http.StatusBadRequest, "the referenced parent does not exist")
 			return
@@ -188,7 +124,7 @@ func PutAnswerHandler(res http.ResponseWriter, req *http.Request) {
 
 	// TODO: upvotes and downvotes should really be just the result of a
 	// COUNT() aggregator on the votes table
-	answer := Answer{
+	answer := models.Answer{
 		Question:  ans.Question,
 		Parent:    ans.Parent,
 		UserId:    user.ID,
@@ -205,7 +141,7 @@ func PutAnswerHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	usr, err := GetOrCreateUserByID(db, user.ID, user.Username)
+	usr, err := util.GetOrCreateUserByID(db, user.ID, user.Username)
 	if err != nil {
 		slog.Error("error while getting or creating the user-alias association", "user", user, "err", err)
 		httputil.WriteError(res, http.StatusBadRequest, "could not insert the answer")
@@ -222,18 +158,8 @@ func PutAnswerHandler(res http.ResponseWriter, req *http.Request) {
 		username = user.Username
 	}
 
-	// recursively convert replies
-	var replies []AnswerResponse
-	for _, reply := range answer.Replies {
-		reply, err := ConvertAnswerToAPI(reply, reply.UserId)
-		if err != nil {
-			return
-		}
-		replies = append(replies, *reply)
-	}
-
 	httputil.WriteData(res, http.StatusOK,
-		AnswerResponse{
+		models.AnswerResponse{
 			ID:        answer.ID,
 			CreatedAt: answer.CreatedAt,
 			UpdatedAt: answer.UpdatedAt,
@@ -243,7 +169,6 @@ func PutAnswerHandler(res http.ResponseWriter, req *http.Request) {
 			Content:   answer.Content,
 			Upvotes:   answer.Upvotes,
 			Downvotes: answer.Downvotes,
-			Replies:   replies,
 			Anonymous: answer.Anonymous,
 			AvatarURL: avatar,
 		})
@@ -271,13 +196,13 @@ func GetQuestionHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	var question Question
+	var question models.Question
 	if err := db.First(&question, uint(qID)).Error; err != nil {
 		slog.Error("question not found", "err", err)
 		httputil.WriteError(res, http.StatusNotFound, "question not found")
 		return
 	}
-	var answers []Answer
+	var answers []models.Answer
 	if err := db.Raw(ANSWERS_QUERY, question.ID).Scan(&answers).Error; err != nil {
 		slog.Error("could not fetch answers", "err", err)
 		httputil.WriteError(res, http.StatusInternalServerError, "could not fetch answers")
@@ -289,7 +214,7 @@ func GetQuestionHandler(res http.ResponseWriter, req *http.Request) {
 		answersIDs = append(answersIDs, answer.ID)
 		answersIndex[answer.ID] = i
 	}
-	var replies []Answer
+	var replies []models.Answer
 	if err := db.Raw(REPLIES_QUERY, answersIDs).Scan(&replies).Error; err != nil {
 		slog.Error("could not fetch replies", "err", err)
 		httputil.WriteError(res, http.StatusInternalServerError, "could not fetch replies")
@@ -303,7 +228,7 @@ func GetQuestionHandler(res http.ResponseWriter, req *http.Request) {
 	question.Answers = answers
 
 	// recursively convert answers
-	var responseAnswers []AnswerResponse
+	var responseAnswers []models.AnswerResponse
 	for _, ans := range question.Answers {
 		ans, err := ConvertAnswerToAPI(ans, ans.UserId)
 		if err != nil {
@@ -313,7 +238,7 @@ func GetQuestionHandler(res http.ResponseWriter, req *http.Request) {
 	}
 
 	httputil.WriteData(res, http.StatusOK,
-		QuestionResponse{
+		models.QuestionResponse{
 			ID:        question.ID,
 			CreatedAt: question.CreatedAt,
 			UpdatedAt: question.UpdatedAt,
@@ -349,7 +274,7 @@ func DelAnswerHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	var answer Answer
+	var answer models.Answer
 	if err := db.First(&answer, uint(aID)).Error; err != nil {
 		slog.Error("answer not found", "err", err)
 		httputil.WriteError(res, http.StatusNotFound, "answer not found")
@@ -368,45 +293,5 @@ func DelAnswerHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	usr, err := GetOrCreateUserByID(db, user.ID, user.Username)
-	if err != nil {
-		slog.Error("error while getting or creating the user-alias association", "user", user, "err", err)
-		httputil.WriteError(res, http.StatusBadRequest, "could not insert the answer")
-		return
-	}
-
-	var avatar, username string
-
-	if answer.Anonymous {
-		avatar = util.GenerateAnonymousAvatar(usr.Alias)
-		username = usr.Alias
-	} else {
-		avatar = user.AvatarUrl
-		username = user.Username
-	}
-
-	// recursively convert replies
-	var replies []AnswerResponse
-	for _, reply := range answer.Replies {
-		reply, err := ConvertAnswerToAPI(reply, reply.UserId)
-		if err != nil {
-			return
-		}
-		replies = append(replies, *reply)
-	}
-
-	httputil.WriteData(res, http.StatusOK, AnswerResponse{
-		ID:        answer.ID,
-		CreatedAt: answer.CreatedAt,
-		UpdatedAt: answer.UpdatedAt,
-		Question:  answer.Question,
-		Parent:    answer.Parent,
-		User:      username,
-		Content:   answer.Content,
-		Upvotes:   answer.Upvotes,
-		Downvotes: answer.Downvotes,
-		Replies:   replies,
-		Anonymous: answer.Anonymous,
-		AvatarURL: avatar,
-	})
+	httputil.WriteData(res, http.StatusNoContent, nil)
 }
