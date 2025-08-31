@@ -6,13 +6,14 @@ import (
 
 	"github.com/cartabinaria/auth/pkg/httputil"
 	"github.com/cartabinaria/auth/pkg/middleware"
+	"github.com/cartabinaria/polleg/models"
 	"github.com/cartabinaria/polleg/util"
 	"github.com/kataras/muxie"
 )
 
 type Document struct {
-	ID        string     `json:"id"`
-	Questions []Question `json:"questions"`
+	ID        string            `json:"id"`
+	Questions []models.Question `json:"questions"`
 }
 
 type Coord struct {
@@ -54,9 +55,9 @@ func PutDocumentHandler(res http.ResponseWriter, req *http.Request) {
 	}
 
 	// save questions
-	var questions []Question
+	var questions []models.Question
 	for _, coord := range data.Coords {
-		q := Question{
+		q := models.Question{
 			Document: data.ID,
 			Start:    coord.Start,
 			End:      coord.End,
@@ -91,8 +92,8 @@ func GetDocumentHandler(res http.ResponseWriter, req *http.Request) {
 	}
 	db := util.GetDb()
 	docID := muxie.GetParam(res, "id")
-	var questions []Question
-	if err := db.Where(Question{Document: docID}).Find(&questions).Error; err != nil {
+	var questions []models.Question
+	if err := db.Where(models.Question{Document: docID}).Find(&questions).Error; err != nil {
 		httputil.WriteError(res, http.StatusInternalServerError, "db query failed")
 		return
 	}

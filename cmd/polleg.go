@@ -13,6 +13,7 @@ import (
 	"github.com/cartabinaria/auth/pkg/middleware"
 	"github.com/cartabinaria/polleg/api"
 	"github.com/cartabinaria/polleg/api/proposal"
+	"github.com/cartabinaria/polleg/models"
 	"github.com/cartabinaria/polleg/util"
 )
 
@@ -53,7 +54,7 @@ func main() {
 		os.Exit(1)
 	}
 	db := util.GetDb()
-	err = db.AutoMigrate(&proposal.Proposal{}, &api.Question{}, &api.Answer{}, &api.Vote{})
+	err = db.AutoMigrate(&proposal.Proposal{}, &models.Question{}, &models.Answer{}, &models.Vote{}, &models.User{})
 	if err != nil {
 		slog.Error("AutoMigrate failed", "err", err)
 		os.Exit(1)
