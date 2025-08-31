@@ -34,17 +34,21 @@ func generateUniqueAlias(db *gorm.DB) (string, error) {
 	pattern := fmt.Sprintf("%s_%%", name)
 	result := db.Where("alias LIKE ?", pattern).Order("created_at DESC").First(&lastUser)
 
-	nextNum := 1
-	if result.Error == nil {
-		re := regexp.MustCompile(fmt.Sprintf(`^%s_(\d+)$`, name))
-		if matches := re.FindStringSubmatch(lastUser.Alias); len(matches) == 2 {
-			if n, err := strconv.Atoi(matches[1]); err == nil {
-				nextNum = n + 1
-			}
+	if result.Error != nil {
+		if result.Error != gorm.ErrRecordNotFound {
+			return "", fmt.Errorf("failed to get last user: %w", result.Error)
+		} else {
+			return fmt.Sprintf("%s_1", name), nil
 		}
-	} else if result.Error != gorm.ErrRecordNotFound {
-		return "", fmt.Errorf("failed to get last user: %w", result.Error)
 	}
 
+	nextNum := 1
+
+	re := regexp.MustCompile(fmt.Sprintf(`^%s_(\d+)$`, name))
+	if matches := re.FindStringSubmatch(lastUser.Alias); len(matches) == 2 {
+		if n, err := strconv.Atoi(matches[1]); err == nil {
+			nextNum = n + 1
+		}
+	}
 	return fmt.Sprintf("%s_%d", name, nextNum), nil
 }
