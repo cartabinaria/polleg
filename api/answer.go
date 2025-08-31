@@ -83,14 +83,14 @@ func ConvertAnswerToAPI(answer models.Answer, id uint) (*models.AnswerResponse, 
 // @Summary		Insert a new answer
 // @Description	Insert a new answer under a question
 // @Tags			answer
-// @Param			answerReq	body	PutAnswerRequest	true	"Answer data to insert"
+// @Param			answerReq	body	PostAnswerRequest	true	"Answer data to insert"
 // @Produce		json
 // @Success		200	{object}	Answer
 // @Failure		400	{object}	util.ApiError
-// @Router			/answers [put]
-func PutAnswerHandler(res http.ResponseWriter, req *http.Request) {
-	// Check method PUT is used
-	if req.Method != http.MethodPut {
+// @Router			/answers [post]
+func PostAnswerHandler(res http.ResponseWriter, req *http.Request) {
+	// Check method POST is used
+	if req.Method != http.MethodPost {
 		httputil.WriteError(res, http.StatusMethodNotAllowed, "invalid method")
 		return
 	}

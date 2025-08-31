@@ -75,7 +75,7 @@ func main() {
 	}
 	mux.Use(authMiddleware.Handler)
 	// insert new answer
-	mux.HandleFunc("/answers", api.PutAnswerHandler)
+	mux.HandleFunc("/answers", api.PostAnswerHandler)
 	// put up/down votes to an answer
 	mux.HandleFunc("/answers/:id/vote", api.PostVote)
 	// insert new doc and quesions
