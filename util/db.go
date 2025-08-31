@@ -10,15 +10,15 @@ import (
 
 var db *gorm.DB = nil
 
-func ConnectDb(ConnStr string) error {
-	gormLogger := slogGorm.New(
-		slogGorm.WithTraceAll(), // trace all messages
-	)
-	var err error
-	db, err = gorm.Open(postgres.Open(ConnStr), &gorm.Config{
-		Logger:      gormLogger,
+func ConnectDb(ConnStr string, trace bool) error {
+	config := &gorm.Config{
 		PrepareStmt: true, // optimize raw queries
-	})
+	}
+	if trace {
+		config.Logger = slogGorm.New(slogGorm.WithTraceAll())
+	}
+	var err error
+	db, err = gorm.Open(postgres.Open(ConnStr), config)
 	if err != nil {
 		return fmt.Errorf("failed to open db connection: %w", err)
 	}
