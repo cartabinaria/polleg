@@ -44,7 +44,7 @@ type Question struct {
 	Document string   `json:"document"`
 	Start    uint32   `json:"start"`
 	End      uint32   `json:"end"`
-	Answers  []Answer `json:"answers" gorm:"foreignKey:Question;references:ID"`
+	Answers  []Answer `json:"answers" gorm:"foreignKey:Question;references:ID;constraint:OnDelete:CASCADE;"`
 }
 
 type Vote struct {

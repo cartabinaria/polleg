@@ -72,6 +72,7 @@ func main() {
 	// authentication-less read-only queries
 	mux.HandleFunc("/documents/:id", api.GetDocumentHandler)
 	mux.HandleFunc("/questions/:id", api.GetQuestionHandler)
+	mux.HandleFunc("/questions/:id", api.DelQuestionHandler)
 
 	// authenticated queries
 	authMiddleware, err := middleware.NewAuthMiddleware(config.AuthURI)
