@@ -281,7 +281,18 @@ func DelAnswerHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if err := db.Delete(&answer).Error; err != nil {
+    if answer.State == models.AnswerStateDeletedByUser || answer.State == models.AnswerStateDeletedByAdmin {
+        httputil.WriteError(res, http.StatusBadRequest, "the answer has already been deleted")
+        return
+    }
+
+    if user.ID != answer.UserId {
+        answer.State = models.AnswerStateDeletedByAdmin
+    } else {
+        answer.State = models.AnswerStateDeletedByUser
+    }
+
+	if err := db.Save(&answer).Error; err != nil {
 		slog.Error("something went wrong", "err", err)
 		httputil.WriteError(res, http.StatusInternalServerError, "something went wrong")
 		return

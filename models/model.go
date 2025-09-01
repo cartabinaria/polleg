@@ -23,7 +23,16 @@ type Answer struct {
 	Replies   []Answer `json:"replies" gorm:"foreignKey:Parent;references:ID"`
 	Votes     []Vote   `json:"-" gorm:"foreignKey:Answer;references:ID"`
 	Anonymous bool     `json:"anonymous"`
+    State AnswerState `json:"state"`
 }
+
+type AnswerState uint8
+
+const (
+  AnswerStateVisible        AnswerState = iota
+  AnswerStateDeletedByUser
+  AnswerStateDeletedByAdmin
+)
 
 type Question struct {
 	// taken from from gorm.Model, so we can json strigify properly
