@@ -66,6 +66,7 @@ func main() {
 	}
 
 	mux := muxie.NewMux()
+	mux.Use(util.NewLoggerMiddleware)
 	mux.Use(httputil.NewCorsMiddleware(config.ClientURLs, true, mux))
 
 	// authentication-less read-only queries
