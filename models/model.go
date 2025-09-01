@@ -16,22 +16,22 @@ type Answer struct {
 	Question uint  `json:"question" gorm:"foreignKey:Question;references:ID"`
 	Parent   *uint `json:"parent"`
 
-	UserId    uint     `json:"-"`
-	Content   string   `json:"content"`
-	Upvotes   uint32   `json:"upvotes" gorm:"->"`
-	Downvotes uint32   `json:"downvotes" gorm:"->"`
-	Replies   []Answer `json:"replies" gorm:"foreignKey:Parent;references:ID"`
-	Votes     []Vote   `json:"-" gorm:"foreignKey:Answer;references:ID"`
-	Anonymous bool     `json:"anonymous"`
-    State AnswerState `json:"state"`
+	UserId    uint        `json:"-"`
+	Content   string      `json:"content"`
+	Upvotes   uint32      `json:"upvotes" gorm:"->"`
+	Downvotes uint32      `json:"downvotes" gorm:"->"`
+	Replies   []Answer    `json:"replies" gorm:"foreignKey:Parent;references:ID"`
+	Votes     []Vote      `json:"-" gorm:"foreignKey:Answer;references:ID"`
+	Anonymous bool        `json:"anonymous"`
+	State     AnswerState `json:"state"`
 }
 
 type AnswerState uint8
 
 const (
-  AnswerStateVisible        AnswerState = iota
-  AnswerStateDeletedByUser
-  AnswerStateDeletedByAdmin
+	AnswerStateVisible AnswerState = iota
+	AnswerStateDeletedByUser
+	AnswerStateDeletedByAdmin
 )
 
 type Question struct {
