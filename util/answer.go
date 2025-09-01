@@ -13,13 +13,10 @@ import (
 
 var names = []string{"Wyatt", "Vivian", "Maria", "Alexander", "Luis", "Aidan", "Mason", "Aiden", "Mackenzie", "Adrian", "Oliver", "Andrea", "Amaya", "Nolan", "Riley", "Robert", "Ryker", "Sara", "Ryan", "Sawyer"}
 
+var DeletedURL = "https://api.dicebear.com/9.x/thumbs/svg?seed=Eden&backgroundColor=0a5b83&backgroundType[]&eyes[]&eyesColor[]&face[]&mouth[]"
+
 func GenerateAnonymousAvatar(alias string) string {
-	re := regexp.MustCompile(`^[A-Za-z]+`)
-	match := re.FindString(alias)
-	if match == "" {
-		return ""
-	}
-	return fmt.Sprintf("https://api.dicebear.com/9.x/thumbs/svg?seed=%s", match)
+	return fmt.Sprintf("https://api.dicebear.com/9.x/thumbs/svg?seed=%s", alias)
 }
 
 func generateUniqueAlias(db *gorm.DB) (string, error) {

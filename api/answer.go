@@ -39,14 +39,20 @@ func ConvertAnswerToAPI(answer models.Answer, id uint) (*models.AnswerResponse, 
 		return nil, err
 	}
 
-	var avatar, username string
+	var avatar, username, content string
 
-	if answer.Anonymous {
+	if answer.State != models.AnswerStateVisible {
+		username = "[deleted]"
+		avatar = util.DeletedURL
+		content = "[deleted]"
+	} else if answer.Anonymous {
 		avatar = util.GenerateAnonymousAvatar(usr.Alias)
 		username = usr.Alias
+		content = answer.Content
 	} else {
 		avatar = fmt.Sprintf("https://avatars.githubusercontent.com/u/%d?v=4", usr.ID)
 		username = usr.Username
+		content = answer.Content
 	}
 
 	// recursively convert replies
@@ -67,7 +73,7 @@ func ConvertAnswerToAPI(answer models.Answer, id uint) (*models.AnswerResponse, 
 		Parent:        answer.Parent,
 		User:          username,
 		UserAvatarURL: avatar,
-		Content:       answer.Content,
+		Content:       content,
 		Upvotes:       answer.Upvotes,
 		Downvotes:     answer.Downvotes,
 		Replies:       replies,
@@ -281,7 +287,18 @@ func DelAnswerHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if err := db.Delete(&answer).Error; err != nil {
+	if answer.State == models.AnswerStateDeletedByUser || answer.State == models.AnswerStateDeletedByAdmin {
+		httputil.WriteError(res, http.StatusBadRequest, "the answer has already been deleted")
+		return
+	}
+
+	if user.ID != answer.UserId {
+		answer.State = models.AnswerStateDeletedByAdmin
+	} else {
+		answer.State = models.AnswerStateDeletedByUser
+	}
+
+	if err := db.Save(&answer).Error; err != nil {
 		slog.Error("something went wrong", "err", err)
 		httputil.WriteError(res, http.StatusInternalServerError, "something went wrong")
 		return
