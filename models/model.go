@@ -73,14 +73,12 @@ type AnswerResponse struct {
 	Question uint  `json:"question"`
 	Parent   *uint `json:"parent"`
 
-	User      string           `json:"user"`
-	Content   string           `json:"content"`
-	Upvotes   uint32           `json:"upvotes"`
-	Downvotes uint32           `json:"downvotes"`
-	Replies   []AnswerResponse `json:"replies"`
-
-	Anonymous bool   `json:"anonymous"`
-	AvatarURL string `json:"anonymous_avatar_url"`
+	User          string           `json:"user"`
+	UserAvatarURL string           `json:"user_avatar_url"`
+	Content       string           `json:"content"`
+	Upvotes       uint32           `json:"upvotes"`
+	Downvotes     uint32           `json:"downvotes"`
+	Replies       []AnswerResponse `json:"replies"`
 }
 
 type VoteValue int8

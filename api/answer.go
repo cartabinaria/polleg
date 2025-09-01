@@ -60,18 +60,17 @@ func ConvertAnswerToAPI(answer models.Answer, id uint) (*models.AnswerResponse, 
 	}
 
 	return &models.AnswerResponse{
-		ID:        answer.ID,
-		CreatedAt: answer.CreatedAt,
-		UpdatedAt: answer.UpdatedAt,
-		Question:  answer.Question,
-		Parent:    answer.Parent,
-		User:      username,
-		Content:   answer.Content,
-		Upvotes:   answer.Upvotes,
-		Downvotes: answer.Downvotes,
-		Replies:   replies,
-		Anonymous: answer.Anonymous,
-		AvatarURL: avatar,
+		ID:            answer.ID,
+		CreatedAt:     answer.CreatedAt,
+		UpdatedAt:     answer.UpdatedAt,
+		Question:      answer.Question,
+		Parent:        answer.Parent,
+		User:          username,
+		UserAvatarURL: avatar,
+		Content:       answer.Content,
+		Upvotes:       answer.Upvotes,
+		Downvotes:     answer.Downvotes,
+		Replies:       replies,
 	}, nil
 
 }
@@ -156,17 +155,16 @@ func PostAnswerHandler(res http.ResponseWriter, req *http.Request) {
 
 	httputil.WriteData(res, http.StatusOK,
 		models.AnswerResponse{
-			ID:        answer.ID,
-			CreatedAt: answer.CreatedAt,
-			UpdatedAt: answer.UpdatedAt,
-			Question:  answer.Question,
-			Parent:    answer.Parent,
-			User:      username,
-			Content:   answer.Content,
-			Upvotes:   answer.Upvotes,
-			Downvotes: answer.Downvotes,
-			Anonymous: answer.Anonymous,
-			AvatarURL: avatar,
+			ID:            answer.ID,
+			CreatedAt:     answer.CreatedAt,
+			UpdatedAt:     answer.UpdatedAt,
+			Question:      answer.Question,
+			Parent:        answer.Parent,
+			User:          username,
+			UserAvatarURL: avatar,
+			Content:       answer.Content,
+			Upvotes:       answer.Upvotes,
+			Downvotes:     answer.Downvotes,
 		})
 }
 
