@@ -2,7 +2,6 @@ package proposal
 
 import (
 	"encoding/json"
-	"html"
 	"net/http"
 
 	"github.com/cartabinaria/auth/pkg/httputil"
