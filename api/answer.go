@@ -300,8 +300,8 @@ func DelAnswerHandler(res http.ResponseWriter, req *http.Request) {
 	}
 
 	if err := db.Save(&answer).Error; err != nil {
-		slog.Error("something went wrong", "err", err)
-		httputil.WriteError(res, http.StatusInternalServerError, "something went wrong")
+		slog.Error("couldn't delete answer", "err", err)
+		httputil.WriteError(res, http.StatusInternalServerError, "couldn't delete answer")
 		return
 	}
 
