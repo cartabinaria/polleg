@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"html"
 	"net/http"
 
 	"github.com/cartabinaria/auth/pkg/httputil"
@@ -59,7 +60,7 @@ func PostDocumentHandler(res http.ResponseWriter, req *http.Request) {
 	var questions []models.Question
 	for _, coord := range data.Coords {
 		q := models.Question{
-			Document: data.ID,
+			Document: html.EscapeString(data.ID),
 			Start:    coord.Start,
 			End:      coord.End,
 		}

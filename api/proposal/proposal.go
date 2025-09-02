@@ -2,6 +2,7 @@ package proposal
 
 import (
 	"encoding/json"
+	"html"
 	"net/http"
 
 	"github.com/cartabinaria/auth/pkg/httputil"
@@ -40,7 +41,7 @@ func postProposal(res http.ResponseWriter, req *http.Request) {
 	var questions []Proposal
 	for _, coord := range data.Coords {
 		q := Proposal{
-			Document: data.ID,
+			Document: html.EscapeString(data.ID),
 			Start:    coord.Start,
 			End:      coord.End,
 		}
