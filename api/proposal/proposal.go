@@ -41,7 +41,7 @@ func postProposal(res http.ResponseWriter, req *http.Request) {
 	var questions []Proposal
 	for _, coord := range data.Coords {
 		q := Proposal{
-			Document: html.EscapeString(data.ID),
+			Document: data.ID,
 			Start:    coord.Start,
 			End:      coord.End,
 		}

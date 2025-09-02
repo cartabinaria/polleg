@@ -47,5 +47,5 @@ func DelQuestionHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	httputil.WriteData(res, http.StatusNoContent, nil)
+	res.WriteHeader(http.StatusNoContent)
 }

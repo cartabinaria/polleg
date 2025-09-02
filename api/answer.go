@@ -3,7 +3,6 @@ package api
 import (
 	"encoding/json"
 	"fmt"
-	"html"
 	"net/http"
 	"strconv"
 
@@ -130,7 +129,7 @@ func PostAnswerHandler(res http.ResponseWriter, req *http.Request) {
 		Question:  ans.Question,
 		Parent:    ans.Parent,
 		UserId:    user.ID,
-		Content:   html.EscapeString(ans.Content),
+		Content:   ans.Content,
 		Upvotes:   0,
 		Downvotes: 0,
 		Anonymous: ans.Anonymous,
