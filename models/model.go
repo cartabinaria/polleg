@@ -47,6 +47,11 @@ type Question struct {
 	Answers  []Answer `json:"answers" gorm:"foreignKey:Question;references:ID"`
 }
 
+func (q *Question) AfterDelete(tx *gorm.DB) (err error) {
+	tx.Model(&Answer{}).Where("question = ?", q.ID).Update("state", AnswerStateDeletedByAdmin)
+	return
+}
+
 type Vote struct {
 	Answer uint `json:"answer" gorm:"primaryKey"`
 	UserId uint `json:"-" gorm:"primaryKey"`
