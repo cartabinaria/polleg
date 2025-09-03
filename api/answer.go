@@ -32,9 +32,9 @@ var (
 `, VOTES_QUERY)
 )
 
-func ConvertAnswerToAPI(answer models.Answer, id uint) (*models.AnswerResponse, error) {
+func ConvertAnswerToAPI(answer models.Answer, isAdmin bool, requesterID int) (*models.AnswerResponse, error) {
 	db := util.GetDb()
-	usr, err := util.GetUserByID(db, id)
+	usr, err := util.GetUserByID(db, answer.UserId)
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +58,7 @@ func ConvertAnswerToAPI(answer models.Answer, id uint) (*models.AnswerResponse, 
 	// recursively convert replies
 	var replies []models.AnswerResponse
 	for _, reply := range answer.Replies {
-		reply, err := ConvertAnswerToAPI(reply, id)
+		reply, err := ConvertAnswerToAPI(reply, isAdmin, requesterID)
 		if err != nil {
 			return nil, err
 		}
@@ -77,6 +77,7 @@ func ConvertAnswerToAPI(answer models.Answer, id uint) (*models.AnswerResponse, 
 		Upvotes:       answer.Upvotes,
 		Downvotes:     answer.Downvotes,
 		Replies:       replies,
+		Removable:     isAdmin || int(answer.UserId) == requesterID,
 	}, nil
 
 }
@@ -96,7 +97,7 @@ func PostAnswerHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 	db := util.GetDb()
-	user := middleware.GetUser(req)
+	user := middleware.MustGetUser(req)
 
 	var ans models.PostAnswerRequest
 	err := json.NewDecoder(req.Body).Decode(&ans)
@@ -171,6 +172,7 @@ func PostAnswerHandler(res http.ResponseWriter, req *http.Request) {
 			Content:       answer.Content,
 			Upvotes:       answer.Upvotes,
 			Downvotes:     answer.Downvotes,
+			Removable:     true,
 		})
 }
 
@@ -188,7 +190,7 @@ func DelAnswerHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	user := middleware.GetUser(req)
+	user := middleware.MustGetUser(req)
 	db := util.GetDb()
 	rawAnsID := muxie.GetParam(res, "id")
 

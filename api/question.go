@@ -28,6 +28,14 @@ func GetQuestionHandler(res http.ResponseWriter, req *http.Request) {
 	}
 	db := util.GetDb()
 	rawQID := muxie.GetParam(res, "id")
+
+	user, err := middleware.GetUser(req)
+	requesterID := -1
+	if err == nil {
+		requesterID = int(user.ID)
+	}
+	isAdmin := middleware.GetAdmin(req)
+
 	qID, err := strconv.ParseUint(rawQID, 10, 0)
 	if err != nil {
 		httputil.WriteError(res, http.StatusBadRequest, "invalid question id")
@@ -68,7 +76,7 @@ func GetQuestionHandler(res http.ResponseWriter, req *http.Request) {
 	// recursively convert answers
 	var responseAnswers []models.AnswerResponse
 	for _, ans := range question.Answers {
-		ans, err := ConvertAnswerToAPI(ans, ans.UserId)
+		ans, err := ConvertAnswerToAPI(ans, isAdmin, requesterID)
 		if err != nil {
 			return
 		}
@@ -102,7 +110,7 @@ func DelQuestionHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	user := middleware.GetUser(req)
+	user := middleware.MustGetUser(req)
 	if !user.Admin {
 		httputil.WriteError(res, http.StatusForbidden, "only admins can delete questions")
 		return

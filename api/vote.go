@@ -28,7 +28,7 @@ func GetUserVote(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 	db := util.GetDb()
-	user := middleware.GetUser(req)
+	user := middleware.MustGetUser(req)
 
 	rawAnsID := muxie.GetParam(res, "id")
 	ansID, err := strconv.ParseUint(rawAnsID, 10, 0)
@@ -71,7 +71,7 @@ func PostVote(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 	db := util.GetDb()
-	user := middleware.GetUser(req)
+	user := middleware.MustGetUser(req)
 
 	rawAnsID := muxie.GetParam(res, "id")
 	ansID, err := strconv.ParseUint(rawAnsID, 10, 0)
