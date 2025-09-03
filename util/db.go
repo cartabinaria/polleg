@@ -64,3 +64,16 @@ func GetOrCreateUserByID(db *gorm.DB, id uint, username string) (*models.User, e
 
 	return user, nil
 }
+
+func CreateImage(db *gorm.DB, id string, userID uint, size uint) (*models.Image, error) {
+	image := models.Image{
+		ID:     id,
+		UserID: userID,
+		Size:   size,
+	}
+	if err := db.Create(&image).Error; err != nil {
+		return nil, err
+	}
+
+	return &image, nil
+}

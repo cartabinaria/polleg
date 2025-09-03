@@ -10,7 +10,9 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/cartabinaria/auth/pkg/middleware"
 	"github.com/cartabinaria/polleg/models"
+	"github.com/cartabinaria/polleg/util"
 	"github.com/google/uuid"
 	"github.com/kataras/muxie"
 )
@@ -171,6 +173,19 @@ func PostImageHandler(imagesPath string) http.HandlerFunc {
 				slog.With("err", err, "path", fullPath).Error("couldn't remove file after failed save")
 			}
 			http.Error(w, "file too large", http.StatusBadRequest)
+			return
+		}
+
+		userID := middleware.GetUser(r).ID
+
+		db := util.GetDb()
+		_, err = util.CreateImage(db, uuid.String(), userID, uint(written))
+		if err != nil {
+			slog.With("err", err).Error("couldn't create image record")
+			if cleanupErr := os.Remove(fullPath); cleanupErr != nil {
+				slog.With("err", cleanupErr, "path", fullPath).Error("couldn't remove file after failed db record creation")
+			}
+			http.Error(w, "couldn't create image record", http.StatusInternalServerError)
 			return
 		}
 
