@@ -12,6 +12,7 @@ import (
 	"github.com/cartabinaria/polleg/util"
 	"github.com/kataras/muxie"
 	"golang.org/x/exp/slog"
+	"gorm.io/gorm"
 )
 
 var (
@@ -32,9 +33,9 @@ var (
 `, VOTES_QUERY)
 )
 
-func ConvertAnswerToAPI(answer models.Answer, id uint) (*models.AnswerResponse, error) {
+func ConvertAnswerToAPI(answer models.Answer, isAdmin bool, requesterID int) (*models.AnswerResponse, error) {
 	db := util.GetDb()
-	usr, err := util.GetUserByID(db, id)
+	usr, err := util.GetUserByID(db, answer.UserId)
 	if err != nil {
 		return nil, err
 	}
@@ -55,10 +56,23 @@ func ConvertAnswerToAPI(answer models.Answer, id uint) (*models.AnswerResponse, 
 		content = answer.Content
 	}
 
+	var voteValue models.VoteValue
+	var vote models.Vote
+	err = db.Where("answer = ? AND user_id = ?", answer.ID, requesterID).First(&vote).Error
+	if err != nil {
+		if err != gorm.ErrRecordNotFound {
+			return nil, err
+		} else {
+			voteValue = VoteNone
+		}
+	} else {
+		voteValue = models.VoteValue(vote.Vote)
+	}
+
 	// recursively convert replies
 	var replies []models.AnswerResponse
 	for _, reply := range answer.Replies {
-		reply, err := ConvertAnswerToAPI(reply, id)
+		reply, err := ConvertAnswerToAPI(reply, isAdmin, requesterID)
 		if err != nil {
 			return nil, err
 		}
@@ -77,6 +91,8 @@ func ConvertAnswerToAPI(answer models.Answer, id uint) (*models.AnswerResponse, 
 		Upvotes:       answer.Upvotes,
 		Downvotes:     answer.Downvotes,
 		Replies:       replies,
+		CanIDelete:    isAdmin || int(answer.UserId) == requesterID,
+		IVoted:        voteValue,
 	}, nil
 
 }
@@ -96,7 +112,7 @@ func PostAnswerHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 	db := util.GetDb()
-	user := middleware.GetUser(req)
+	user := middleware.MustGetUser(req)
 
 	var ans models.PostAnswerRequest
 	err := json.NewDecoder(req.Body).Decode(&ans)
@@ -171,6 +187,8 @@ func PostAnswerHandler(res http.ResponseWriter, req *http.Request) {
 			Content:       answer.Content,
 			Upvotes:       answer.Upvotes,
 			Downvotes:     answer.Downvotes,
+			CanIDelete:    true,
+			IVoted:        0,
 		})
 }
 
@@ -188,7 +206,7 @@ func DelAnswerHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	user := middleware.GetUser(req)
+	user := middleware.MustGetUser(req)
 	db := util.GetDb()
 	rawAnsID := muxie.GetParam(res, "id")
 
