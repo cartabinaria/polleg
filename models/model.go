@@ -123,3 +123,8 @@ type QuestionResponse struct {
 	End      uint32           `json:"end"`
 	Answers  []AnswerResponse `json:"answers"`
 }
+
+type ImageResponse struct {
+	ID  string `json:"id"`
+	URL string `json:"url"`
+}

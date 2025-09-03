@@ -8,8 +8,8 @@ services:
     ports:
       - 5432:5432
     environment:
-      POSTGRES_USER: berlusconi
-      POSTGRES_PASSWORD: bungabunga
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password123
 
   adminer:
     image: adminer
