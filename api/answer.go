@@ -12,6 +12,7 @@ import (
 	"github.com/cartabinaria/polleg/util"
 	"github.com/kataras/muxie"
 	"golang.org/x/exp/slog"
+	"gorm.io/gorm"
 )
 
 var (
@@ -55,6 +56,19 @@ func ConvertAnswerToAPI(answer models.Answer, isAdmin bool, requesterID int) (*m
 		content = answer.Content
 	}
 
+	var voteValue models.VoteValue
+	var vote models.Vote
+	err = db.Where("answer = ? AND user_id = ?", answer.ID, requesterID).First(&vote).Error
+	if err != nil {
+		if err != gorm.ErrRecordNotFound {
+			return nil, err
+		} else {
+			voteValue = VoteNone
+		}
+	} else {
+		voteValue = models.VoteValue(vote.Vote)
+	}
+
 	// recursively convert replies
 	var replies []models.AnswerResponse
 	for _, reply := range answer.Replies {
@@ -78,6 +92,7 @@ func ConvertAnswerToAPI(answer models.Answer, isAdmin bool, requesterID int) (*m
 		Downvotes:     answer.Downvotes,
 		Replies:       replies,
 		Removable:     isAdmin || int(answer.UserId) == requesterID,
+		Voted:         voteValue,
 	}, nil
 
 }
@@ -173,6 +188,7 @@ func PostAnswerHandler(res http.ResponseWriter, req *http.Request) {
 			Upvotes:       answer.Upvotes,
 			Downvotes:     answer.Downvotes,
 			Removable:     true,
+			Voted:         0,
 		})
 }
 

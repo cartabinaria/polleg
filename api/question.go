@@ -97,7 +97,7 @@ func GetQuestionHandler(res http.ResponseWriter, req *http.Request) {
 }
 
 // @Summary		Delete a question
-// @Description	Given an andwer ID, delete the question
+// @Description	Given a question ID, delete the question
 // @Tags			question
 // @Param			id	path	string	true	"Question id"
 // @Produce		json

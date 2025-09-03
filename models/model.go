@@ -94,6 +94,7 @@ type AnswerResponse struct {
 	Downvotes     uint32           `json:"downvotes"`
 	Replies       []AnswerResponse `json:"replies"`
 	Removable     bool             `json:"removable"`
+	Voted         VoteValue        `json:"voted"`
 }
 
 type VoteValue int8
