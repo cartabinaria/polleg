@@ -2,10 +2,14 @@ package util
 
 import (
 	"fmt"
+	"log"
+	"os"
+	"time"
 
 	"github.com/cartabinaria/polleg/models"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	gorm_logger "gorm.io/gorm/logger"
 )
 
 var db *gorm.DB = nil
@@ -13,6 +17,15 @@ var db *gorm.DB = nil
 func ConnectDb(ConnStr string) error {
 	config := &gorm.Config{
 		PrepareStmt: true, // optimize raw queries
+		Logger: gorm_logger.New(
+			log.New(os.Stdout, "\r\n", log.LstdFlags),
+			gorm_logger.Config{
+				SlowThreshold:             time.Second,
+				LogLevel:                  gorm_logger.Error,
+				IgnoreRecordNotFoundError: true,
+				Colorful:                  true,
+			},
+		),
 	}
 	var err error
 	db, err = gorm.Open(postgres.Open(ConnStr), config)
