@@ -210,15 +210,6 @@ func PostImageHandler(imagesPath string) http.HandlerFunc {
 			return
 		}
 
-		if written > MAX_IMAGE_SIZE {
-			err = os.Remove(fullPath)
-			if err != nil {
-				slog.With("err", err, "path", fullPath).Error("couldn't remove file after failed save")
-			}
-			httputil.WriteError(w, http.StatusBadRequest, "file too large")
-			return
-		}
-
 		_, err = util.CreateImage(db, uuid.String(), user.ID, uint(written))
 		if err != nil {
 			slog.With("err", err).Error("couldn't create image record")
