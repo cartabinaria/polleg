@@ -93,6 +93,7 @@ func ConvertAnswerToAPI(answer models.Answer, isAdmin bool, requesterID int) (*m
 		Replies:       replies,
 		CanIDelete:    isAdmin || int(answer.UserId) == requesterID,
 		IVoted:        voteValue,
+		EditedByAdmin: answer.EditedByAdmin,
 	}, nil
 
 }
@@ -225,7 +226,7 @@ func DelAnswerHandler(res http.ResponseWriter, req *http.Request) {
 
 	if !user.Admin && answer.UserId != user.ID {
 		slog.Error("you are not an admin or the owner of the answer", "err", err)
-		httputil.WriteError(res, http.StatusInternalServerError, "you are not an admin or the owner of the answer")
+		httputil.WriteError(res, http.StatusUnauthorized, "you are not an admin or the owner of the answer")
 		return
 	}
 
@@ -234,7 +235,7 @@ func DelAnswerHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if user.ID != answer.UserId {
+	if user.ID != answer.UserId && user.Admin {
 		answer.State = models.AnswerStateDeletedByAdmin
 	} else {
 		answer.State = models.AnswerStateDeletedByUser
@@ -247,4 +248,75 @@ func DelAnswerHandler(res http.ResponseWriter, req *http.Request) {
 	}
 
 	res.WriteHeader(http.StatusNoContent)
+}
+
+// @Summary		Update an answer
+// @Description	Given an andwer ID, update the answer
+// @Tags			answer
+// @Param			id	path	string	true	"Answer id"
+// @Produce		json
+// @Success		200	{object}	nil
+// @Failure		400	{object}	httputil.ApiError
+// @Router			/answers/{id} [patch]
+func UpdateAnswerHandler(res http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodPatch {
+		httputil.WriteError(res, http.StatusMethodNotAllowed, "invalid method")
+		return
+	}
+
+	user := middleware.MustGetUser(req)
+	db := util.GetDb()
+	rawAnsID := muxie.GetParam(res, "id")
+
+	aID, err := strconv.ParseUint(rawAnsID, 10, 0)
+	if err != nil {
+		httputil.WriteError(res, http.StatusBadRequest, "invalid question id")
+		return
+	}
+
+	var body models.UpdateAnswerRequest
+	err = json.NewDecoder(req.Body).Decode(&body)
+	if err != nil {
+		httputil.WriteError(res, http.StatusBadRequest, fmt.Sprintf("decode error: %v", err))
+		return
+	}
+
+	var answer models.Answer
+	if err := db.First(&answer, uint(aID)).Error; err != nil {
+		slog.Error("answer not found", "err", err)
+		httputil.WriteError(res, http.StatusNotFound, "answer not found")
+		return
+	}
+
+	if !user.Admin && answer.UserId != user.ID {
+		slog.Error("you are not an admin or the owner of the answer", "err", err)
+		httputil.WriteError(res, http.StatusUnauthorized, "you are not an admin or the owner of the answer")
+		return
+	}
+
+	if answer.State == models.AnswerStateDeletedByUser || answer.State == models.AnswerStateDeletedByAdmin {
+		httputil.WriteError(res, http.StatusBadRequest, "you cannot update a deleted answer")
+		return
+	}
+
+	answer.Content = body.Content
+
+	if answer.UserId != user.ID && user.Admin {
+		answer.EditedByAdmin = true
+	}
+
+	if err := db.Save(&answer).Error; err != nil {
+		slog.Error("couldn't update answer", "err", err)
+		httputil.WriteError(res, http.StatusInternalServerError, "couldn't update answer")
+		return
+	}
+
+	responseData, err := ConvertAnswerToAPI(answer, user.Admin, int(user.ID))
+	if err != nil {
+		slog.Error("couldn't update answer", "err", err)
+		httputil.WriteError(res, http.StatusInternalServerError, "couldn't update answer")
+		return
+	}
+
+	httputil.WriteData(res, http.StatusOK, responseData)
 }

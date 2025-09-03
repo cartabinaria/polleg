@@ -99,6 +99,9 @@ func main() {
 	// insert new doc and quesions
 	mux.Handle("/documents", authChain.ForFunc(api.PostDocumentHandler))
 	mux.Handle("/answers/:id", authChain.ForFunc(api.DelAnswerHandler))
+	mux.Handle("/answers/:id", muxie.Methods().
+		Handle("DELETE", authChain.ForFunc(api.DelAnswerHandler)).
+		Handle("PATCH", authChain.ForFunc(api.UpdateAnswerHandler)))
 
 	// Images
 	mux.Handle("/images", authChain.ForFunc(api.PostImageHandler(config.ImagesPath)))
