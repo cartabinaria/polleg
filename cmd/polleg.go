@@ -72,11 +72,6 @@ func main() {
 	// authentication-less read-only queries
 	mux.HandleFunc("/documents/:id", api.GetDocumentHandler)
 	mux.HandleFunc("/questions/:id", api.GetQuestionHandler)
-	mux.HandleFunc("/questions/:id", api.DelQuestionHandler)
-	mux.Handle("/questions/:id", muxie.Methods().
-		HandleFunc("GET", api.GetQuestionHandler).
-		HandleFunc("DELETE", api.DelQuestionHandler),
-	)
 
 	// authenticated queries
 	authMiddleware, err := middleware.NewAuthMiddleware(config.AuthURI)
@@ -91,8 +86,8 @@ func main() {
 	mux.HandleFunc("/answers/:id/vote", api.PostVote)
 	// insert new doc and quesions
 	mux.HandleFunc("/documents", api.PostDocumentHandler)
-
 	mux.HandleFunc("/answers/:id", api.DelAnswerHandler)
+	mux.HandleFunc("/questions/:id", api.DelQuestionHandler)
 	// proposal managers
 	mux.HandleFunc("/proposals", proposal.ProposalHandler)
 	mux.HandleFunc("/proposals/:id", proposal.ProposalByIdHandler)
