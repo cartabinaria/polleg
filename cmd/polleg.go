@@ -31,8 +31,9 @@ type Config struct {
 var (
 	// Default config values
 	config = Config{
-		Listen:  "0.0.0.0:3001",
-		AuthURI: "http://localhost:3000",
+		Listen:     "0.0.0.0:3001",
+		AuthURI:    "http://localhost:3000",
+		ImagesPath: "./images",
 	}
 )
 
