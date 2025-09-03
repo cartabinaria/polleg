@@ -1,7 +1,9 @@
 package api
 
 import (
+	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
@@ -13,9 +15,40 @@ import (
 	"github.com/kataras/muxie"
 )
 
+type ImageType string
+
+var (
+	// File signatures (magic numbers)
+	pngSignature  = []byte{0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A}
+	jpegSignature = []byte{0xFF, 0xD8, 0xFF}
+
+	ImageTypePNG  ImageType = "image/png"
+	ImageTypeJPEG ImageType = "image/jpeg"
+)
+
 const (
 	MAX_IMAGE_SIZE = 5 * 1024 * 1024 // 5 MB
 )
+
+// checkFileType reads the first few bytes of a file and compares them with known signatures
+func checkFileType(reader io.Reader) (ImageType, error) {
+	// Read first 8 bytes for signature checking
+	buff := make([]byte, 8)
+	n, err := reader.Read(buff)
+	if err != nil || n < 8 {
+		return "", fmt.Errorf("error reading file header: %v", err)
+	}
+
+	// Check signatures
+	if bytes.HasPrefix(buff, pngSignature) {
+		return ImageTypePNG, nil
+	}
+	if bytes.HasPrefix(buff, jpegSignature) {
+		return ImageTypeJPEG, nil
+	}
+
+	return "", fmt.Errorf("unsupported file type")
+}
 
 // @Summary		Get an image
 // @Description	Given an image ID, return the image
@@ -83,6 +116,16 @@ func PostImageHandler(imagesPath string) http.HandlerFunc {
 			return
 		}
 
+		if fpCheck, err := checkFileType(file); err != nil {
+			slog.With("err", err).Error("couldn't check file type")
+			http.Error(w, "couldn't check file type", http.StatusBadRequest)
+			return
+		} else if string(fpCheck) != fType {
+			slog.With("expected", fType, "got", fpCheck).Error("file type mismatch")
+			http.Error(w, "file type mismatch", http.StatusBadRequest)
+			return
+		}
+
 		uuid, err := uuid.NewV7()
 		if err != nil {
 			slog.With("err", err).Error("couldn't generate uuid")
@@ -100,13 +143,25 @@ func PostImageHandler(imagesPath string) http.HandlerFunc {
 		defer destFile.Close()
 
 		written, err := io.CopyN(destFile, file, MAX_IMAGE_SIZE+1)
-		if err != nil && err != io.EOF {
+		switch {
+		case err == io.EOF:
+			// File is within size limits - this is good!
+			slog.With("path", fullPath, "size", written).Info("file successfully saved")
+		case err != nil:
+			// Unexpected error occurred
 			slog.With("err", err).Error("couldn't save file")
-			err = os.Remove(fullPath)
-			if err != nil {
-				slog.With("err", err, "path", fullPath).Error("couldn't remove file after failed save")
+			if cleanupErr := os.Remove(fullPath); cleanupErr != nil {
+				slog.With("err", cleanupErr, "path", fullPath).Error("couldn't remove file after failed save")
 			}
 			http.Error(w, "couldn't save file", http.StatusInternalServerError)
+			return
+		case written > MAX_IMAGE_SIZE:
+			// File exceeded size limit
+			slog.With("size", written, "max", MAX_IMAGE_SIZE).Error("file too large")
+			if cleanupErr := os.Remove(fullPath); cleanupErr != nil {
+				slog.With("err", cleanupErr, "path", fullPath).Error("couldn't remove file after failed save")
+			}
+			http.Error(w, "file too large", http.StatusBadRequest)
 			return
 		}
 
