@@ -102,7 +102,7 @@ func PostImageHandler(imagesPath string) http.HandlerFunc {
 		}
 
 		db := util.GetDb()
-		user := middleware.GetUser(r)
+		user := middleware.MustGetUser(r)
 		_, err := util.GetOrCreateUserByID(db, user.ID, user.Username)
 		if err != nil {
 			slog.With("user", user, "err", err).Error("error while getting or creating the user-alias association")
