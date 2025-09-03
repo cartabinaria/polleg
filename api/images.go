@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/cartabinaria/auth/pkg/httputil"
 	"github.com/cartabinaria/auth/pkg/middleware"
 	"github.com/cartabinaria/polleg/models"
 	"github.com/cartabinaria/polleg/util"
@@ -32,7 +33,8 @@ const (
 	MAX_IMAGE_SIZE = 5 * 1024 * 1024 // 5 MB
 )
 
-// checkFileType reads the first few bytes of a file and compares them with known signatures
+// checkFileType reads the first few bytes of a file and compares them with known signatures.
+// As it takes a reader as input, the caller should ensure to reset the reader's position if needed (e.g., using Seek).
 func checkFileType(reader io.Reader) (ImageType, error) {
 	// Read first 8 bytes for signature checking
 	buff := make([]byte, 8)
@@ -71,7 +73,7 @@ func GetImageHandler(imagesPath string) http.HandlerFunc {
 
 		_, err := uuid.Parse(imgID)
 		if err != nil {
-			http.Error(res, "invalid image id", http.StatusBadRequest)
+			httputil.WriteError(res, http.StatusBadRequest, "invalid image id")
 			return
 		}
 
@@ -100,7 +102,7 @@ func PostImageHandler(imagesPath string) http.HandlerFunc {
 		file, fileHeader, err := r.FormFile("file")
 		if err != nil {
 			slog.With("err", err).Error("couldn't get file from form")
-			http.Error(w, "couldn't get file from form", http.StatusBadRequest)
+			httputil.WriteError(w, http.StatusBadRequest, "couldn't get file from form")
 			return
 		}
 		defer file.Close()
@@ -108,30 +110,37 @@ func PostImageHandler(imagesPath string) http.HandlerFunc {
 		slog.With("filename", fileHeader.Filename, "size", fileHeader.Size, "Type: ", fileHeader.Header.Get("Content-Type")).Info("received file")
 
 		if fileHeader.Size > MAX_IMAGE_SIZE {
-			http.Error(w, "file too large", http.StatusBadRequest)
+			httputil.WriteError(w, http.StatusBadRequest, "file too large")
 			return
 		}
 
 		fType := fileHeader.Header.Get("Content-Type")
 		if fType != "image/png" && fType != "image/jpeg" {
-			http.Error(w, "invalid file type", http.StatusBadRequest)
+			httputil.WriteError(w, http.StatusBadRequest, "unsupported file type")
 			return
 		}
 
 		if fpCheck, err := checkFileType(file); err != nil {
 			slog.With("err", err).Error("couldn't check file type")
-			http.Error(w, "couldn't check file type", http.StatusBadRequest)
+			httputil.WriteError(w, http.StatusBadRequest, "couldn't check file type")
 			return
 		} else if string(fpCheck) != fType {
 			slog.With("expected", fType, "got", fpCheck).Error("file type mismatch")
-			http.Error(w, "file type mismatch", http.StatusBadRequest)
+			httputil.WriteError(w, http.StatusBadRequest, "file type mismatch")
+			return
+		}
+
+		_, err = file.Seek(0, io.SeekStart)
+		if err != nil {
+			slog.With("err", err).Error("couldn't seek file")
+			httputil.WriteError(w, http.StatusInternalServerError, "couldn't seek file")
 			return
 		}
 
 		uuid, err := uuid.NewV7()
 		if err != nil {
 			slog.With("err", err).Error("couldn't generate uuid")
-			http.Error(w, "couldn't generate uuid", http.StatusInternalServerError)
+			httputil.WriteError(w, http.StatusInternalServerError, "couldn't generate uuid")
 			return
 		}
 		fullPath := filepath.Join(imagesPath, uuid.String())
@@ -139,7 +148,7 @@ func PostImageHandler(imagesPath string) http.HandlerFunc {
 		destFile, err := os.Create(fullPath)
 		if err != nil {
 			slog.With("err", err).Error("couldn't create file")
-			http.Error(w, "couldn't create file", http.StatusInternalServerError)
+			httputil.WriteError(w, http.StatusInternalServerError, "couldn't create file")
 			return
 		}
 		defer destFile.Close()
@@ -155,7 +164,7 @@ func PostImageHandler(imagesPath string) http.HandlerFunc {
 			if cleanupErr := os.Remove(fullPath); cleanupErr != nil {
 				slog.With("err", cleanupErr, "path", fullPath).Error("couldn't remove file after failed save")
 			}
-			http.Error(w, "couldn't save file", http.StatusInternalServerError)
+			httputil.WriteError(w, http.StatusInternalServerError, "couldn't save file")
 			return
 		case written > MAX_IMAGE_SIZE:
 			// File exceeded size limit
@@ -163,7 +172,7 @@ func PostImageHandler(imagesPath string) http.HandlerFunc {
 			if cleanupErr := os.Remove(fullPath); cleanupErr != nil {
 				slog.With("err", cleanupErr, "path", fullPath).Error("couldn't remove file after failed save")
 			}
-			http.Error(w, "file too large", http.StatusBadRequest)
+			httputil.WriteError(w, http.StatusBadRequest, "file too large")
 			return
 		}
 
@@ -172,20 +181,26 @@ func PostImageHandler(imagesPath string) http.HandlerFunc {
 			if err != nil {
 				slog.With("err", err, "path", fullPath).Error("couldn't remove file after failed save")
 			}
-			http.Error(w, "file too large", http.StatusBadRequest)
+			httputil.WriteError(w, http.StatusBadRequest, "file too large")
 			return
 		}
 
-		userID := middleware.GetUser(r).ID
-
 		db := util.GetDb()
-		_, err = util.CreateImage(db, uuid.String(), userID, uint(written))
+		user := middleware.GetUser(r)
+		_, err = util.GetOrCreateUserByID(db, user.ID, user.Username)
+		if err != nil {
+			slog.With("user", user, "err", err).Error("error while getting or creating the user-alias association")
+			httputil.WriteError(w, http.StatusBadRequest, "could not insert the answer")
+			return
+		}
+
+		_, err = util.CreateImage(db, uuid.String(), user.ID, uint(written))
 		if err != nil {
 			slog.With("err", err).Error("couldn't create image record")
 			if cleanupErr := os.Remove(fullPath); cleanupErr != nil {
 				slog.With("err", cleanupErr, "path", fullPath).Error("couldn't remove file after failed db record creation")
 			}
-			http.Error(w, "couldn't create image record", http.StatusInternalServerError)
+			httputil.WriteError(w, http.StatusInternalServerError, "could not insert the image")
 			return
 		}
 

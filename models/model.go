@@ -135,6 +135,6 @@ type Image struct {
 	UpdatedAt time.Time
 	DeletedAt gorm.DeletedAt `json:"-"`
 
-	UserID uint `gorm:"index; not null"`
+	UserID uint `gorm:"index; not null; foreignKey:User; references:ID"`
 	Size   uint `gorm:"not null"`
 }
