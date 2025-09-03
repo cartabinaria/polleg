@@ -107,6 +107,9 @@ func main() {
 	mux.Handle("/proposals/:id", authChain.ForFunc(proposal.ProposalByIdHandler))
 	mux.Handle("/proposals/document/:id", authChain.ForFunc(proposal.ProposalByDocumentHandler))
 
+	// start garbage collector
+	go util.GarbageCollector(config.ImagesPath)
+
 	slog.Info("listening at", "address", config.Listen)
 	err = http.ListenAndServe(config.Listen, mux)
 	if err != nil {
