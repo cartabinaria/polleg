@@ -91,8 +91,8 @@ func ConvertAnswerToAPI(answer models.Answer, isAdmin bool, requesterID int) (*m
 		Upvotes:       answer.Upvotes,
 		Downvotes:     answer.Downvotes,
 		Replies:       replies,
-		Removable:     isAdmin || int(answer.UserId) == requesterID,
-		Voted:         voteValue,
+		CanIDelete:    isAdmin || int(answer.UserId) == requesterID,
+		IVoted:        voteValue,
 	}, nil
 
 }
@@ -187,8 +187,8 @@ func PostAnswerHandler(res http.ResponseWriter, req *http.Request) {
 			Content:       answer.Content,
 			Upvotes:       answer.Upvotes,
 			Downvotes:     answer.Downvotes,
-			Removable:     true,
-			Voted:         0,
+			CanIDelete:    true,
+			IVoted:        0,
 		})
 }
 

@@ -93,8 +93,8 @@ type AnswerResponse struct {
 	Upvotes       uint32           `json:"upvotes"`
 	Downvotes     uint32           `json:"downvotes"`
 	Replies       []AnswerResponse `json:"replies"`
-	Removable     bool             `json:"removable"`
-	Voted         VoteValue        `json:"voted"`
+	CanIDelete    bool             `json:"can_i_delete"`
+	IVoted        VoteValue        `json:"i_voted"`
 }
 
 type VoteValue int8

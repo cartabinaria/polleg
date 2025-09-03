@@ -66,32 +66,31 @@ func main() {
 	}
 
 	mux := muxie.NewMux()
-	mux.Use(util.NewLoggerMiddleware)
-	mux.Use(httputil.NewCorsMiddleware(config.ClientURLs, true, mux))
-
-	// authentication-less read-only queries
-	mux.HandleFunc("/documents/:id", api.GetDocumentHandler)
-	mux.HandleFunc("/questions/:id", api.GetQuestionHandler)
-
-	// authenticated queries
 	authMiddleware, err := middleware.NewAuthMiddleware(config.AuthURI)
 	if err != nil {
 		slog.Error("failed to create authentication middleware", "err", err)
 		os.Exit(1)
 	}
-	mux.Use(authMiddleware.Handler)
+	authChain := muxie.Pre(util.NewLoggerMiddleware, httputil.NewCorsMiddleware(config.ClientURLs, true, mux), authMiddleware.Handler)
+	authOptionalChain := muxie.Pre(util.NewLoggerMiddleware, httputil.NewCorsMiddleware(config.ClientURLs, true, mux), authMiddleware.NonBlockingHandler)
+
+	// authentication-less read-only queries
+	mux.Handle("/documents/:id", authOptionalChain.ForFunc(api.GetDocumentHandler))
+	mux.Handle("/questions/:id", authOptionalChain.ForFunc(api.GetQuestionHandler))
+
+	// authenticated queries
 	// insert new answer
-	mux.HandleFunc("/answers", api.PostAnswerHandler)
+	mux.Handle("/answers", authChain.ForFunc(api.PostAnswerHandler))
 	// put up/down votes to an answer
-	mux.HandleFunc("/answers/:id/vote", api.PostVote)
+	mux.Handle("/answers/:id/vote", authChain.ForFunc(api.PostVote))
 	// insert new doc and quesions
-	mux.HandleFunc("/documents", api.PostDocumentHandler)
-	mux.HandleFunc("/answers/:id", api.DelAnswerHandler)
-	mux.HandleFunc("/questions/:id", api.DelQuestionHandler)
+	mux.Handle("/documents", authChain.ForFunc(api.PostDocumentHandler))
+	mux.Handle("/answers/:id", authChain.ForFunc(api.DelAnswerHandler))
+	mux.Handle("/questions/:id", authChain.ForFunc(api.DelQuestionHandler))
 	// proposal managers
-	mux.HandleFunc("/proposals", proposal.ProposalHandler)
-	mux.HandleFunc("/proposals/:id", proposal.ProposalByIdHandler)
-	mux.HandleFunc("/proposals/document/:id", proposal.ProposalByDocumentHandler)
+	mux.Handle("/proposals", authChain.ForFunc(proposal.ProposalHandler))
+	mux.Handle("/proposals/:id", authChain.ForFunc(proposal.ProposalByIdHandler))
+	mux.Handle("/proposals/document/:id", authChain.ForFunc(proposal.ProposalByDocumentHandler))
 
 	slog.Info("listening at", "address", config.Listen)
 	err = http.ListenAndServe(config.Listen, mux)
