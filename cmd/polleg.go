@@ -23,7 +23,6 @@ type Config struct {
 
 	DbURI   string `toml:"db_uri" required:"true"`
 	AuthURI string `toml:"auth_uri" required:"true"`
-	DbTrace bool   `toml:"db_trace"`
 
 	ImagesPath string `toml:"images_path"`
 }
@@ -56,7 +55,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	err = util.ConnectDb(config.DbURI, config.DbTrace)
+	err = util.ConnectDb(config.DbURI)
 	if err != nil {
 		slog.Error("failed to connect to db", "err", err)
 		os.Exit(1)

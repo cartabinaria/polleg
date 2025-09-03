@@ -4,19 +4,15 @@ import (
 	"fmt"
 
 	"github.com/cartabinaria/polleg/models"
-	slogGorm "github.com/orandin/slog-gorm"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
 var db *gorm.DB = nil
 
-func ConnectDb(ConnStr string, trace bool) error {
+func ConnectDb(ConnStr string) error {
 	config := &gorm.Config{
 		PrepareStmt: true, // optimize raw queries
-	}
-	if trace {
-		config.Logger = slogGorm.New(slogGorm.WithTraceAll())
 	}
 	var err error
 	db, err = gorm.Open(postgres.Open(ConnStr), config)
