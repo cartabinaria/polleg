@@ -123,3 +123,18 @@ type QuestionResponse struct {
 	End      uint32           `json:"end"`
 	Answers  []AnswerResponse `json:"answers"`
 }
+
+type ImageResponse struct {
+	ID  string `json:"id"`
+	URL string `json:"url"`
+}
+
+type Image struct {
+	ID        string `gorm:"primarykey"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt gorm.DeletedAt `json:"-"`
+
+	UserID uint `gorm:"index; not null; foreignKey:User; references:ID"`
+	Size   uint `gorm:"not null"`
+}

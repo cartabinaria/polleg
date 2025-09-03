@@ -64,3 +64,34 @@ func GetOrCreateUserByID(db *gorm.DB, id uint, username string) (*models.User, e
 
 	return user, nil
 }
+
+func CreateImage(db *gorm.DB, id string, userID uint, size uint) (*models.Image, error) {
+	image := models.Image{
+		ID:     id,
+		UserID: userID,
+		Size:   size,
+	}
+	if err := db.Create(&image).Error; err != nil {
+		return nil, err
+	}
+
+	return &image, nil
+}
+
+func GetTotalSizeOfImagesByUser(db *gorm.DB, userID uint) (uint64, error) {
+	var totalSize uint64
+	err := db.Model(&models.Image{}).Where("user_id = ?", userID).Select("COALESCE(SUM(size), 0)").Scan(&totalSize).Error
+	if err != nil {
+		return 0, err
+	}
+	return totalSize, nil
+}
+
+func GetNumberOfImagesByUser(db *gorm.DB, userID uint) (int64, error) {
+	var count int64
+	err := db.Model(&models.Image{}).Where("user_id = ?", userID).Count(&count).Error
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}

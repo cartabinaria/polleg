@@ -24,13 +24,16 @@ type Config struct {
 	DbURI   string `toml:"db_uri" required:"true"`
 	AuthURI string `toml:"auth_uri" required:"true"`
 	DbTrace bool   `toml:"db_trace"`
+
+	ImagesPath string `toml:"images_path"`
 }
 
 var (
 	// Default config values
 	config = Config{
-		Listen:  "0.0.0.0:3001",
-		AuthURI: "http://localhost:3000",
+		Listen:     "0.0.0.0:3001",
+		AuthURI:    "http://localhost:3000",
+		ImagesPath: "./images",
 	}
 )
 
@@ -59,9 +62,15 @@ func main() {
 		os.Exit(1)
 	}
 	db := util.GetDb()
-	err = db.AutoMigrate(&proposal.Proposal{}, &models.Question{}, &models.Answer{}, &models.Vote{}, &models.User{})
+	err = db.AutoMigrate(&proposal.Proposal{}, &models.Question{}, &models.Answer{}, &models.Vote{}, &models.User{}, &models.Image{})
 	if err != nil {
 		slog.Error("AutoMigrate failed", "err", err)
+		os.Exit(1)
+	}
+
+	err = os.Mkdir(config.ImagesPath, 0755)
+	if err != nil && !os.IsExist(err) {
+		slog.Error("failed to create images directory", "err", err)
 		os.Exit(1)
 	}
 
@@ -80,6 +89,8 @@ func main() {
 		Handle("GET", authOptionalChain.ForFunc(api.GetQuestionHandler)).
 		Handle("DELETE", authChain.ForFunc(api.DelQuestionHandler)))
 
+	mux.Handle("/images/:id", authOptionalChain.ForFunc(api.GetImageHandler(config.ImagesPath)))
+
 	// authenticated queries
 	// insert new answer
 	mux.Handle("/answers", authChain.ForFunc(api.PostAnswerHandler))
@@ -88,10 +99,17 @@ func main() {
 	// insert new doc and quesions
 	mux.Handle("/documents", authChain.ForFunc(api.PostDocumentHandler))
 	mux.Handle("/answers/:id", authChain.ForFunc(api.DelAnswerHandler))
+
+	// Images
+	mux.Handle("/images", authChain.ForFunc(api.PostImageHandler(config.ImagesPath)))
+
 	// proposal managers
 	mux.Handle("/proposals", authChain.ForFunc(proposal.ProposalHandler))
 	mux.Handle("/proposals/:id", authChain.ForFunc(proposal.ProposalByIdHandler))
 	mux.Handle("/proposals/document/:id", authChain.ForFunc(proposal.ProposalByDocumentHandler))
+
+	// start garbage collector
+	go util.GarbageCollector(config.ImagesPath)
 
 	slog.Info("listening at", "address", config.Listen)
 	err = http.ListenAndServe(config.Listen, mux)

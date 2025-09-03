@@ -198,6 +198,44 @@ const docTemplate = `{
                 }
             }
         },
+        "/images": {
+            "post": {
+                "description": "Insert a new image",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "image"
+                ],
+                "summary": "Insert a new image",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "Image to upload",
+                        "name": "image",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.ImageResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/httputil.ApiError"
+                        }
+                    }
+                }
+            }
+        },
         "/questions/{id}": {
             "get": {
                 "description": "Given a question ID, return the question and all its answers",
@@ -226,6 +264,36 @@ const docTemplate = `{
                                 "$ref": "#/definitions/models.QuestionResponse"
                             }
                         }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/httputil.ApiError"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Given an andwer ID, delete the question",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "question"
+                ],
+                "summary": "Delete a question",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Question id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
                     },
                     "400": {
                         "description": "Bad Request",
@@ -316,6 +384,9 @@ const docTemplate = `{
                         "$ref": "#/definitions/models.Answer"
                     }
                 },
+                "state": {
+                    "$ref": "#/definitions/models.AnswerState"
+                },
                 "updated_at": {
                     "type": "string"
                 },
@@ -327,12 +398,6 @@ const docTemplate = `{
         "models.AnswerResponse": {
             "type": "object",
             "properties": {
-                "anonymous": {
-                    "type": "boolean"
-                },
-                "anonymous_avatar_url": {
-                    "type": "string"
-                },
                 "content": {
                     "type": "string"
                 },
@@ -364,6 +429,34 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "user": {
+                    "type": "string"
+                },
+                "user_avatar_url": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.AnswerState": {
+            "type": "integer",
+            "format": "int32",
+            "enum": [
+                0,
+                1,
+                2
+            ],
+            "x-enum-varnames": [
+                "AnswerStateVisible",
+                "AnswerStateDeletedByUser",
+                "AnswerStateDeletedByAdmin"
+            ]
+        },
+        "models.ImageResponse": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "url": {
                     "type": "string"
                 }
             }

@@ -51,6 +51,8 @@ definitions:
         items:
           $ref: '#/definitions/models.Answer'
         type: array
+      state:
+        $ref: '#/definitions/models.AnswerState'
       updated_at:
         type: string
       upvotes:
@@ -58,10 +60,6 @@ definitions:
     type: object
   models.AnswerResponse:
     properties:
-      anonymous:
-        type: boolean
-      anonymous_avatar_url:
-        type: string
       content:
         type: string
       created_at:
@@ -83,6 +81,26 @@ definitions:
       upvotes:
         type: integer
       user:
+        type: string
+      user_avatar_url:
+        type: string
+    type: object
+  models.AnswerState:
+    enum:
+    - 0
+    - 1
+    - 2
+    format: int32
+    type: integer
+    x-enum-varnames:
+    - AnswerStateVisible
+    - AnswerStateDeletedByUser
+    - AnswerStateDeletedByAdmin
+  models.ImageResponse:
+    properties:
+      id:
+        type: string
+      url:
         type: string
     type: object
   models.PostAnswerRequest:
@@ -275,7 +293,52 @@ paths:
       summary: Get a document's divisions
       tags:
       - document
+  /images:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Insert a new image
+      parameters:
+      - description: Image to upload
+        in: formData
+        name: image
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.ImageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/httputil.ApiError'
+      summary: Insert a new image
+      tags:
+      - image
   /questions/{id}:
+    delete:
+      description: Given an andwer ID, delete the question
+      parameters:
+      - description: Question id
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/httputil.ApiError'
+      summary: Delete a question
+      tags:
+      - question
     get:
       description: Given a question ID, return the question and all its answers
       parameters:
