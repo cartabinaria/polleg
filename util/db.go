@@ -80,7 +80,7 @@ func CreateImage(db *gorm.DB, id string, userID uint, size uint) (*models.Image,
 
 func GetTotalSizeOfImagesByUser(db *gorm.DB, userID uint) (uint64, error) {
 	var totalSize uint64
-	err := db.Model(&models.Image{}).Where("user_id = ?", userID).Select("SUM(size)").Scan(&totalSize).Error
+	err := db.Model(&models.Image{}).Where("user_id = ?", userID).Select("COALESCE(SUM(size), 0)").Scan(&totalSize).Error
 	if err != nil {
 		return 0, err
 	}

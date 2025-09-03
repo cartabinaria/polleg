@@ -114,6 +114,7 @@ func PostImageHandler(imagesPath string) http.HandlerFunc {
 		if err != nil {
 			slog.With("user", user, "err", err).Error("error while getting total size of images by user")
 			httputil.WriteError(w, http.StatusInternalServerError, "could not insert the image")
+			return
 		}
 
 		if totalSize > MAX_TOTAL_SIZE {
