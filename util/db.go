@@ -77,3 +77,21 @@ func CreateImage(db *gorm.DB, id string, userID uint, size uint) (*models.Image,
 
 	return &image, nil
 }
+
+func GetTotalSizeOfImagesByUser(db *gorm.DB, userID uint) (uint64, error) {
+	var totalSize uint64
+	err := db.Model(&models.Image{}).Where("user_id = ?", userID).Select("SUM(size)").Scan(&totalSize).Error
+	if err != nil {
+		return 0, err
+	}
+	return totalSize, nil
+}
+
+func GetNumberOfImagesByUser(db *gorm.DB, userID uint) (int64, error) {
+	var count int64
+	err := db.Model(&models.Image{}).Where("user_id = ?", userID).Count(&count).Error
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}

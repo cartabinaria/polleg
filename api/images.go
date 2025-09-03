@@ -30,7 +30,9 @@ var (
 )
 
 const (
-	MAX_IMAGE_SIZE = 5 * 1024 * 1024 // 5 MB
+	MAX_IMAGE_SIZE = 5 * 1024 * 1024   // 5 MB
+	MAX_TOTAL_SIZE = 200 * 1024 * 1024 // 200 MB per user
+	MAX_NUMBER     = 100               // 100 images per user
 )
 
 // checkFileType reads the first few bytes of a file and compares them with known signatures.
@@ -96,6 +98,38 @@ func PostImageHandler(imagesPath string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, "invalid method", http.StatusMethodNotAllowed)
+			return
+		}
+
+		db := util.GetDb()
+		user := middleware.GetUser(r)
+		_, err := util.GetOrCreateUserByID(db, user.ID, user.Username)
+		if err != nil {
+			slog.With("user", user, "err", err).Error("error while getting or creating the user-alias association")
+			httputil.WriteError(w, http.StatusBadRequest, "could not insert the answer")
+			return
+		}
+
+		totalSize, err := util.GetTotalSizeOfImagesByUser(db, user.ID)
+		if err != nil {
+			slog.With("user", user, "err", err).Error("error while getting total size of images by user")
+			httputil.WriteError(w, http.StatusInternalServerError, "could not insert the image")
+		}
+
+		if totalSize > MAX_TOTAL_SIZE {
+			httputil.WriteError(w, http.StatusBadRequest, "user quota exceeded")
+			return
+		}
+
+		totalNumber, err := util.GetNumberOfImagesByUser(db, user.ID)
+		if err != nil {
+			slog.With("user", user, "err", err).Error("error while getting total number of images by user")
+			httputil.WriteError(w, http.StatusInternalServerError, "could not insert the image")
+			return
+		}
+
+		if totalNumber >= MAX_NUMBER {
+			httputil.WriteError(w, http.StatusBadRequest, "user image count quota exceeded")
 			return
 		}
 
@@ -182,15 +216,6 @@ func PostImageHandler(imagesPath string) http.HandlerFunc {
 				slog.With("err", err, "path", fullPath).Error("couldn't remove file after failed save")
 			}
 			httputil.WriteError(w, http.StatusBadRequest, "file too large")
-			return
-		}
-
-		db := util.GetDb()
-		user := middleware.GetUser(r)
-		_, err = util.GetOrCreateUserByID(db, user.ID, user.Username)
-		if err != nil {
-			slog.With("user", user, "err", err).Error("error while getting or creating the user-alias association")
-			httputil.WriteError(w, http.StatusBadRequest, "could not insert the answer")
 			return
 		}
 
