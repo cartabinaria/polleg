@@ -76,7 +76,9 @@ func main() {
 
 	// authentication-less read-only queries
 	mux.Handle("/documents/:id", authOptionalChain.ForFunc(api.GetDocumentHandler))
-	mux.Handle("/questions/:id", authOptionalChain.ForFunc(api.GetQuestionHandler))
+	mux.Handle("/questions/:id", muxie.Methods().
+		Handle("GET", authOptionalChain.ForFunc(api.GetQuestionHandler)).
+		Handle("DELETE", authChain.ForFunc(api.DelQuestionHandler)))
 
 	// authenticated queries
 	// insert new answer
@@ -86,7 +88,6 @@ func main() {
 	// insert new doc and quesions
 	mux.Handle("/documents", authChain.ForFunc(api.PostDocumentHandler))
 	mux.Handle("/answers/:id", authChain.ForFunc(api.DelAnswerHandler))
-	mux.Handle("/questions/:id", authChain.ForFunc(api.DelQuestionHandler))
 	// proposal managers
 	mux.Handle("/proposals", authChain.ForFunc(proposal.ProposalHandler))
 	mux.Handle("/proposals/:id", authChain.ForFunc(proposal.ProposalByIdHandler))
