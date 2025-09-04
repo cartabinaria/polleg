@@ -18,24 +18,6 @@ import (
 
 const RepliesDepth = 2
 
-var (
-	VOTES_QUERY = fmt.Sprintf(`
-  SELECT votes.answer,
-				 COUNT(CASE votes.vote WHEN %d THEN 1 ELSE NULL END) as upvotes,
-				 COUNT(CASE votes.vote WHEN %d THEN 1 ELSE NULL END) as downvotes
-  FROM votes
-  GROUP BY Answer
-`, VoteUp, VoteDown)
-	ANSWERS_QUERY = fmt.Sprintf(`
-  SELECT *
-  FROM answers
-  LEFT JOIN (%s) vote_counts ON vote_counts.answer = answers.id
-  WHERE answers.deleted_at is NULL
-		AND answers.parent is NULL
-		AND answers.question = ?
-`, VOTES_QUERY)
-)
-
 func ConvertAnswerToAPI(answer models.Answer, isAdmin bool, requesterID int) (*models.AnswerResponse, error) {
 	db := util.GetDb()
 	usr, err := util.GetUserByID(db, answer.UserId)
@@ -369,12 +351,13 @@ func GetRepliesHandler(res http.ResponseWriter, req *http.Request) {
 
 	votes_subquery := db.Table("votes").
 		Select("votes.answer, COUNT(CASE votes.vote WHEN ? THEN 1 ELSE NULL END) as upvotes, COUNT(CASE votes.vote WHEN ? THEN 1 ELSE NULL END) as downvotes", VoteUp, VoteDown).
+		Where("votes.deleted_at IS NULL").
 		Group("votes.answer")
 
 	err = db.Table("answers").
-		Select("answers.*, votes_count.upvotes, votes_count.downvotes").
+		Select("answers.*, vote_counts.upvotes, vote_counts.downvotes").
 		Where("answers.delete_at is NULL ANS answers.parent = ?", answer.ID).
-		Joins("LEFT JOIN (?) ON votes.answer = answers.id", votes_subquery).
+		Joins("LEFT JOIN (?) vote_counts ON vote_counts.answer = answers.id", votes_subquery).
 		Preload(preloadingString[:len(preloadingString)-1], func(db *gorm.DB) *gorm.DB {
 			// perform join also on preloaded replies so they have their respective votes
 			return db.Select("answers.*, vote_counts.upvotes, vote_counts.downvotes").
