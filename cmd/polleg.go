@@ -96,6 +96,7 @@ func main() {
 	mux.Handle("/answers", authChain.ForFunc(api.PostAnswerHandler))
 	// put up/down votes to an answer
 	mux.Handle("/answers/:id/vote", authChain.ForFunc(api.PostVote))
+	mux.Handle("/answers/:id/replies", authChain.ForFunc(api.GetRepliesHandler))
 	// insert new doc and quesions
 	mux.Handle("/documents", authChain.ForFunc(api.PostDocumentHandler))
 	mux.Handle("/answers/:id", authChain.ForFunc(api.DelAnswerHandler))

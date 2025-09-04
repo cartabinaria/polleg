@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/cartabinaria/auth/pkg/httputil"
 	"github.com/cartabinaria/auth/pkg/middleware"
@@ -14,6 +15,8 @@ import (
 	"golang.org/x/exp/slog"
 	"gorm.io/gorm"
 )
+
+const RepliesDepth = 2
 
 var (
 	VOTES_QUERY = fmt.Sprintf(`
@@ -303,6 +306,8 @@ func UpdateAnswerHandler(res http.ResponseWriter, req *http.Request) {
 
 	if answer.UserId != user.ID && user.Admin {
 		answer.EditedByAdmin = true
+	} else {
+		answer.EditedByAdmin = false
 	}
 
 	if err := db.Save(&answer).Error; err != nil {
@@ -315,6 +320,79 @@ func UpdateAnswerHandler(res http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		slog.Error("couldn't update answer", "err", err)
 		httputil.WriteError(res, http.StatusInternalServerError, "couldn't update answer")
+		return
+	}
+
+	httputil.WriteData(res, http.StatusOK, responseData)
+}
+
+// @Summary		Get answer replies
+// @Description	Given an andwer ID, return its replies
+// @Tags			answer
+// @Param			id	path	string	true	"Answer id"
+// @Produce		json
+// @Success		200	{object}	nil
+// @Failure		400	{object}	models.AnswerResponse[]
+// @Router			/answers/{id} [get]
+func GetRepliesHandler(res http.ResponseWriter, req *http.Request) {
+	// Check method GET is used
+	if req.Method != http.MethodGet {
+		httputil.WriteError(res, http.StatusMethodNotAllowed, "invalid method")
+		return
+	}
+	db := util.GetDb()
+	rawQID := muxie.GetParam(res, "id")
+
+	user, err := middleware.GetUser(req)
+	requesterID := -1
+	if err == nil {
+		requesterID = int(user.ID)
+	}
+	isAdmin := middleware.GetAdmin(req)
+
+	aID, err := strconv.ParseUint(rawQID, 10, 0)
+	if err != nil {
+		httputil.WriteError(res, http.StatusBadRequest, "invalid answer id")
+		return
+	}
+
+	var answer models.Answer
+
+	if err := db.First(&answer, uint(aID)).Error; err != nil {
+		slog.Error("answer not found", "err", err)
+		httputil.WriteError(res, http.StatusNotFound, "answer not found")
+		return
+	}
+
+	var replies []models.Answer
+	preloadingString := strings.Repeat("Replies.", RepliesDepth-1)
+
+	votes_subquery := db.Table("votes").
+		Select("votes.answer, COUNT(CASE votes.vote WHEN ? THEN 1 ELSE NULL END) as upvotes, COUNT(CASE votes.vote WHEN ? THEN 1 ELSE NULL END) as downvotes", VoteUp, VoteDown).
+		Group("votes.answer")
+
+	err = db.Table("answers").
+		Select("answers.*, votes_count.upvotes, votes_count.downvotes").
+		Where("answers.delete_at is NULL ANS answers.parent = ?", answer.ID).
+		Joins("LEFT JOIN (?) ON votes.answer = answers.id", votes_subquery).
+		Preload(preloadingString[:len(preloadingString)-1], func(db *gorm.DB) *gorm.DB {
+			// perform join also on preloaded replies so they have their respective votes
+			return db.Select("answers.*, vote_counts.upvotes, vote_counts.downvotes").
+				Where("answers.deleted_at is NULL").
+				Joins("LEFT JOIN (?) vote_counts ON vote_counts.answer = answers.id", votes_subquery)
+		}).
+		Find(&replies).Error
+
+	if err != nil {
+		slog.Error("could not fetch answers", "err", err)
+		httputil.WriteError(res, http.StatusInternalServerError, "could not fetch answers")
+		return
+	}
+
+	answer.Replies = replies
+	responseData, err := ConvertAnswerToAPI(answer, isAdmin, requesterID)
+	if err != nil {
+
 		return
 	}
 

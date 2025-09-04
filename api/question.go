@@ -3,6 +3,7 @@ package api
 import (
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/cartabinaria/auth/pkg/httputil"
 	"github.com/cartabinaria/auth/pkg/middleware"
@@ -10,6 +11,7 @@ import (
 	"github.com/cartabinaria/polleg/util"
 	"github.com/kataras/muxie"
 	"golang.org/x/exp/slog"
+	"gorm.io/gorm"
 )
 
 // @Summary		Get all answers given a question
@@ -48,27 +50,31 @@ func GetQuestionHandler(res http.ResponseWriter, req *http.Request) {
 		httputil.WriteError(res, http.StatusNotFound, "question not found")
 		return
 	}
+
 	var answers []models.Answer
-	if err := db.Raw(ANSWERS_QUERY, question.ID).Scan(&answers).Error; err != nil {
+
+	preloadingString := strings.Repeat("Replies.", RepliesDepth)
+
+	votes_subquery := db.Table("votes").
+		Select("votes.answer, COUNT(CASE votes.vote WHEN ? THEN 1 ELSE NULL END) as upvotes, COUNT(CASE votes.vote WHEN ? THEN 1 ELSE NULL END) as downvotes", VoteUp, VoteDown).
+		Group("votes.answer")
+
+	err = db.Table("answers").
+		Select("answers.*, votes_count.upvotes, votes_count.downvotes").
+		Where("answers.delete_at is NULL ANS answers.parent is NULL AND answers.question = ?", question.ID).
+		Joins("LEFT JOIN (?) ON votes.answer = answers.id", votes_subquery).
+		Preload(preloadingString[:len(preloadingString)-1], func(db *gorm.DB) *gorm.DB {
+			// perform join also on preloaded replies so they have their respective votes
+			return db.Select("answers.*, vote_counts.upvotes, vote_counts.downvotes").
+				Where("answers.deleted_at is NULL").
+				Joins("LEFT JOIN (?) vote_counts ON vote_counts.answer = answers.id", votes_subquery)
+		}).
+		Find(&answers).Error
+
+	if err != nil {
 		slog.Error("could not fetch answers", "err", err)
 		httputil.WriteError(res, http.StatusInternalServerError, "could not fetch answers")
 		return
-	}
-	answersIDs := []uint{}
-	answersIndex := map[uint]int{}
-	for i, answer := range answers {
-		answersIDs = append(answersIDs, answer.ID)
-		answersIndex[answer.ID] = i
-	}
-	var replies []models.Answer
-	if err := db.Model(&models.Answer{}).Where("deleted_at is NULL AND parent IN ?", answersIDs).Find(&replies).Error; err != nil {
-		slog.Error("could not fetch replies", "err", err)
-		httputil.WriteError(res, http.StatusInternalServerError, "could not fetch replies")
-		return
-	}
-	for _, reply := range replies {
-		index := answersIndex[*reply.Parent]
-		answers[index].Replies = append(answers[index].Replies, reply)
 	}
 
 	question.Answers = answers
