@@ -92,10 +92,6 @@ func PostVote(res http.ResponseWriter, req *http.Request) {
 		httputil.WriteError(res, http.StatusBadRequest, "the referenced answer does not exist")
 		return
 	}
-	if ans.Parent != nil {
-		httputil.WriteError(res, http.StatusBadRequest, "cannot vote a reply to an answer")
-		return
-	}
 
 	vote := models.Vote{
 		Answer: ans.ID,

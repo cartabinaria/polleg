@@ -57,17 +57,15 @@ func GetQuestionHandler(res http.ResponseWriter, req *http.Request) {
 
 	votes_subquery := db.Table("votes").
 		Select("votes.answer, COUNT(CASE votes.vote WHEN ? THEN 1 ELSE NULL END) as upvotes, COUNT(CASE votes.vote WHEN ? THEN 1 ELSE NULL END) as downvotes", VoteUp, VoteDown).
-		Where("votes.deleted_at IS NULL").
 		Group("votes.answer")
 
 	err = db.Table("answers").
 		Select("answers.*, vote_counts.upvotes, vote_counts.downvotes").
-		Where("answers.delete_at IS NULL ANS answers.parent IS NULL AND answers.question = ?", question.ID).
+		Where("answers.deleted_at IS NULL AND answers.parent IS NULL AND answers.question = ?", question.ID).
 		Joins("LEFT JOIN (?) vote_counts ON vote_counts.answer = answers.id", votes_subquery).
 		Preload(preloadingString[:len(preloadingString)-1], func(db *gorm.DB) *gorm.DB {
 			// perform join also on preloaded replies so they have their respective votes
 			return db.Select("answers.*, vote_counts.upvotes, vote_counts.downvotes").
-				Where("answers.deleted_at IS NULL").
 				Joins("LEFT JOIN (?) vote_counts ON vote_counts.answer = answers.id", votes_subquery)
 		}).
 		Find(&answers).Error

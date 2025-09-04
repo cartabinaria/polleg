@@ -300,8 +300,8 @@ func UpdateAnswerHandler(res http.ResponseWriter, req *http.Request) {
 
 	responseData, err := ConvertAnswerToAPI(answer, user.Admin, int(user.ID))
 	if err != nil {
-		slog.Error("couldn't update answer", "err", err)
-		httputil.WriteError(res, http.StatusInternalServerError, "couldn't update answer")
+		slog.Error("couldn't generate response", "err", err)
+		httputil.WriteError(res, http.StatusInternalServerError, "couldn't generate response")
 		return
 	}
 
@@ -315,7 +315,7 @@ func UpdateAnswerHandler(res http.ResponseWriter, req *http.Request) {
 // @Produce		json
 // @Success		200	{object}	nil
 // @Failure		400	{object}	models.AnswerResponse[]
-// @Router			/answers/{id} [get]
+// @Router			/answers/{id}/replies [get]
 func GetRepliesHandler(res http.ResponseWriter, req *http.Request) {
 	// Check method GET is used
 	if req.Method != http.MethodGet {
@@ -351,17 +351,15 @@ func GetRepliesHandler(res http.ResponseWriter, req *http.Request) {
 
 	votes_subquery := db.Table("votes").
 		Select("votes.answer, COUNT(CASE votes.vote WHEN ? THEN 1 ELSE NULL END) as upvotes, COUNT(CASE votes.vote WHEN ? THEN 1 ELSE NULL END) as downvotes", VoteUp, VoteDown).
-		Where("votes.deleted_at IS NULL").
 		Group("votes.answer")
 
 	err = db.Table("answers").
 		Select("answers.*, vote_counts.upvotes, vote_counts.downvotes").
-		Where("answers.delete_at is NULL ANS answers.parent = ?", answer.ID).
+		Where("answers.deleted_at is NULL AND answers.parent = ?", answer.ID).
 		Joins("LEFT JOIN (?) vote_counts ON vote_counts.answer = answers.id", votes_subquery).
 		Preload(preloadingString[:len(preloadingString)-1], func(db *gorm.DB) *gorm.DB {
 			// perform join also on preloaded replies so they have their respective votes
 			return db.Select("answers.*, vote_counts.upvotes, vote_counts.downvotes").
-				Where("answers.deleted_at is NULL").
 				Joins("LEFT JOIN (?) vote_counts ON vote_counts.answer = answers.id", votes_subquery)
 		}).
 		Find(&replies).Error
@@ -375,7 +373,7 @@ func GetRepliesHandler(res http.ResponseWriter, req *http.Request) {
 	answer.Replies = replies
 	responseData, err := ConvertAnswerToAPI(answer, isAdmin, requesterID)
 	if err != nil {
-
+		httputil.WriteError(res, http.StatusInternalServerError, "could not create response")
 		return
 	}
 
