@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/cartabinaria/auth/pkg/httputil"
+	"github.com/cartabinaria/auth/pkg/middleware"
 	"github.com/cartabinaria/polleg/api"
 	"github.com/cartabinaria/polleg/util"
 )
@@ -68,6 +69,11 @@ func groupByProperty[T any, K comparable](items []T, getProperty func(T) K) map[
 }
 
 func getAllProposalHandler(res http.ResponseWriter, req *http.Request) {
+	if !middleware.GetAdmin(req) {
+		httputil.WriteError(res, http.StatusForbidden, "you are not admin")
+		return
+	}
+
 	db := util.GetDb()
 	var questions []Proposal
 	if err := db.Where(Proposal{}).Find(&questions).Error; err != nil {

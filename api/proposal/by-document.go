@@ -13,24 +13,25 @@ import (
 )
 
 func ProposalByDocumentHandler(res http.ResponseWriter, req *http.Request) {
+	if !middleware.GetAdmin(req) {
+		httputil.WriteError(res, http.StatusForbidden, "you are not admin")
+		return
+	}
+
 	switch req.Method {
 	case http.MethodDelete:
-		deleteProposalByDocumentHandler(res, req)
+		deleteProposalByDocumentHandler(res)
 	case http.MethodGet:
-		getProposalByDocumentHandler(res, req)
+		getProposalByDocumentHandler(res)
 	default:
 		httputil.WriteError(res, http.StatusMethodNotAllowed, "invalid method")
 	}
 }
 
-func getProposalByDocumentHandler(res http.ResponseWriter, req *http.Request) {
-	// Check method GET is used
-	if req.Method != http.MethodGet {
-		httputil.WriteError(res, http.StatusMethodNotAllowed, "invalid method")
-		return
-	}
+func getProposalByDocumentHandler(res http.ResponseWriter) {
 	db := util.GetDb()
 	docID := muxie.GetParam(res, "id")
+
 	var questions []Proposal
 	if err := db.Where(models.Question{Document: docID}).Find(&questions).Error; err != nil {
 		httputil.WriteError(res, http.StatusInternalServerError, "db query failed")
@@ -40,25 +41,16 @@ func getProposalByDocumentHandler(res http.ResponseWriter, req *http.Request) {
 		httputil.WriteError(res, http.StatusNotFound, "Document not found")
 		return
 	}
+
 	httputil.WriteData(res, http.StatusOK, DocumentProposal{
 		ID:        docID,
 		Questions: questions,
 	})
 }
 
-func deleteProposalByDocumentHandler(res http.ResponseWriter, req *http.Request) {
-	if !middleware.GetAdmin(req) {
-		httputil.WriteError(res, http.StatusForbidden, "you are not admin")
-		return
-	}
-	if req.Method != http.MethodDelete {
-		httputil.WriteError(res, http.StatusMethodNotAllowed, "invalid method")
-		return
-	}
+func deleteProposalByDocumentHandler(res http.ResponseWriter) {
 	db := util.GetDb()
 	docID := muxie.GetParam(res, "id")
-
-	proposal := Proposal{Document: docID}
 
 	if err := db.Where("document = ?", docID).Delete(&Proposal{}).Error; err != nil {
 		fmt.Println()
@@ -68,5 +60,5 @@ func deleteProposalByDocumentHandler(res http.ResponseWriter, req *http.Request)
 		return
 	}
 
-	httputil.WriteData(res, http.StatusOK, proposal)
+	res.WriteHeader(http.StatusNoContent)
 }
