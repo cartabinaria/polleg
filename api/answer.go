@@ -159,28 +159,7 @@ func PostAnswerHandler(res http.ResponseWriter, req *http.Request) {
 		Anonymous: ans.Anonymous,
 	}
 
-	// Start transaction
-	tx := db.Begin()
-	if tx.Error != nil {
-		slog.Error("error starting transaction", "err", tx.Error)
-		httputil.WriteError(res, http.StatusInternalServerError, "could not start transaction")
-		return
-	}
-
-	// Create answer
-	err = tx.Create(&answer).Error
-	if err != nil {
-		tx.Rollback()
-		slog.Error("error while creating the answer", "answer", answer, "err", err)
-		httputil.WriteError(res, http.StatusBadRequest, "could not insert the answer")
-		return
-	}
-
-	// Create answer version
-	version := models.AnswerVersions{
-		Answer:  answer.ID,
-		Content: ans.Content,
-	}
+	var version models.AnswerVersions
 
 	err = db.Transaction(func(tx *gorm.DB) error {
 		// Create answer
