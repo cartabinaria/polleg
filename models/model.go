@@ -26,7 +26,8 @@ type Answer struct {
 }
 
 type AnswerVersions struct {
-	ID uint `json:"id" gorm:"primarykey"`
+	ID        uint      `json:"id" gorm:"primarykey"`
+	CreatedAt time.Time `json:"created_at"`
 
 	Answer  uint   `gorm:"index; not null;"`
 	Content string `json:"content"`
@@ -105,7 +106,6 @@ type AnswerResponse struct {
 	Replies       []AnswerResponse `json:"replies"`
 	CanIDelete    bool             `json:"can_i_delete"`
 	IVoted        VoteValue        `json:"i_voted"`
-	EditedByAdmin bool             `json:"edited_by_admin"`
 }
 
 type VoteValue int8

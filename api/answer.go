@@ -18,6 +18,27 @@ import (
 
 const RepliesDepth = 2
 
+// createVotesSubquery creates a reusable subquery for vote counting
+func createVotesSubquery(db *gorm.DB) *gorm.DB {
+	return db.Table("votes").
+		Select("votes.answer, COUNT(CASE votes.vote WHEN ? THEN 1 ELSE NULL END) as upvotes, COUNT(CASE votes.vote WHEN ? THEN 1 ELSE NULL END) as downvotes", VoteUp, VoteDown).
+		Group("votes.answer")
+}
+
+// applyVoteJoins applies the votes subquery and selects answers with vote counts
+func applyVoteJoins(query *gorm.DB, votesSubquery *gorm.DB) *gorm.DB {
+	return query.
+		Select("answers.*, vote_counts.upvotes, vote_counts.downvotes").
+		Joins("LEFT JOIN (?) vote_counts ON vote_counts.answer = answers.id", votesSubquery)
+}
+
+// createPreloadFunction creates the preload function with vote joins
+func createPreloadFunction(votesSubquery *gorm.DB) func(db *gorm.DB) *gorm.DB {
+	return func(db *gorm.DB) *gorm.DB {
+		return applyVoteJoins(db, votesSubquery)
+	}
+}
+
 func ConvertAnswerToAPI(answer models.Answer, isAdmin bool, requesterID int) (*models.AnswerResponse, error) {
 	db := util.GetDb()
 	usr, err := util.GetUserByID(db, answer.UserId)
@@ -129,8 +150,6 @@ func PostAnswerHandler(res http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	// TODO: upvotes and downvotes should really be just the result of a
-	// COUNT() aggregator on the votes table
 	answer := models.Answer{
 		Question:  ans.Question,
 		Parent:    ans.Parent,
@@ -140,25 +159,41 @@ func PostAnswerHandler(res http.ResponseWriter, req *http.Request) {
 		Anonymous: ans.Anonymous,
 	}
 
-	version := models.AnswerVersions{
-		Answer:  answer.ID,
-		Content: ans.Content,
+	// Start transaction
+	tx := db.Begin()
+	if tx.Error != nil {
+		slog.Error("error starting transaction", "err", tx.Error)
+		httputil.WriteError(res, http.StatusInternalServerError, "could not start transaction")
+		return
 	}
 
-	err = db.Create(&answer).Error
+	// Create answer
+	err = tx.Create(&answer).Error
 	if err != nil {
+		tx.Rollback()
 		slog.Error("error while creating the answer", "answer", answer, "err", err)
 		httputil.WriteError(res, http.StatusBadRequest, "could not insert the answer")
 		return
 	}
 
-	err = db.Create(&version).Error
+	// Create answer version
+	version := models.AnswerVersions{
+		Answer:  answer.ID,
+		Content: ans.Content,
+	}
+
+	err = tx.Create(&version).Error
 	if err != nil {
-		slog.Error("error while creating the answer", "answer", answer, "err", err)
-		if err = db.Delete(&models.Answer{}, answer.ID).Error; err != nil {
-			slog.Error("error while cleaning up after failed answer creation", "answer", answer, "version", version, "err", err)
-		}
+		tx.Rollback()
+		slog.Error("error while creating the answer version", "answer", answer, "version", version, "err", err)
 		httputil.WriteError(res, http.StatusBadRequest, "could not insert the answer")
+		return
+	}
+
+	// Commit transaction
+	if err = tx.Commit().Error; err != nil {
+		slog.Error("error committing transaction", "answer", answer, "version", version, "err", err)
+		httputil.WriteError(res, http.StatusInternalServerError, "could not complete answer creation")
 		return
 	}
 
@@ -297,7 +332,7 @@ func UpdateAnswerHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if answer.State == models.AnswerStateDeletedByUser || answer.State == models.AnswerStateDeletedByAdmin {
+	if answer.State != models.AnswerStateVisible {
 		httputil.WriteError(res, http.StatusBadRequest, "you cannot update a deleted answer")
 		return
 	}
@@ -364,19 +399,13 @@ func GetRepliesHandler(res http.ResponseWriter, req *http.Request) {
 	var replies []models.Answer
 	preloadingString := strings.Repeat("Replies.", RepliesDepth-1)
 
-	votes_subquery := db.Table("votes").
-		Select("votes.answer, COUNT(CASE votes.vote WHEN ? THEN 1 ELSE NULL END) as upvotes, COUNT(CASE votes.vote WHEN ? THEN 1 ELSE NULL END) as downvotes", VoteUp, VoteDown).
-		Group("votes.answer")
-
-	err = db.Table("answers").
-		Select("answers.*, vote_counts.upvotes, vote_counts.downvotes").
-		Where("answers.deleted_at is NULL AND answers.parent = ?", answer.ID).
-		Joins("LEFT JOIN (?) vote_counts ON vote_counts.answer = answers.id", votes_subquery).
-		Preload(preloadingString[:len(preloadingString)-1], func(db *gorm.DB) *gorm.DB {
-			// perform join also on preloaded replies so they have their respective votes
-			return db.Select("answers.*, vote_counts.upvotes, vote_counts.downvotes").
-				Joins("LEFT JOIN (?) vote_counts ON vote_counts.answer = answers.id", votes_subquery)
-		}).
+	votesSubquery := createVotesSubquery(db)
+	err = applyVoteJoins(
+		db.Table("answers").
+			Where("answers.deleted_at IS NULL AND answers.parent = ?", answer.ID),
+		votesSubquery,
+	).
+		Preload(preloadingString[:len(preloadingString)-1], createPreloadFunction(votesSubquery)).
 		Find(&replies).Error
 
 	if err != nil {

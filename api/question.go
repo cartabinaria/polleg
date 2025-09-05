@@ -11,7 +11,6 @@ import (
 	"github.com/cartabinaria/polleg/util"
 	"github.com/kataras/muxie"
 	"golang.org/x/exp/slog"
-	"gorm.io/gorm"
 )
 
 // @Summary		Get all answers given a question
@@ -55,19 +54,13 @@ func GetQuestionHandler(res http.ResponseWriter, req *http.Request) {
 
 	preloadingString := strings.Repeat("Replies.", RepliesDepth)
 
-	votes_subquery := db.Table("votes").
-		Select("votes.answer, COUNT(CASE votes.vote WHEN ? THEN 1 ELSE NULL END) as upvotes, COUNT(CASE votes.vote WHEN ? THEN 1 ELSE NULL END) as downvotes", VoteUp, VoteDown).
-		Group("votes.answer")
-
-	err = db.Table("answers").
-		Select("answers.*, vote_counts.upvotes, vote_counts.downvotes").
-		Where("answers.deleted_at IS NULL AND answers.parent IS NULL AND answers.question = ?", question.ID).
-		Joins("LEFT JOIN (?) vote_counts ON vote_counts.answer = answers.id", votes_subquery).
-		Preload(preloadingString[:len(preloadingString)-1], func(db *gorm.DB) *gorm.DB {
-			// perform join also on preloaded replies so they have their respective votes
-			return db.Select("answers.*, vote_counts.upvotes, vote_counts.downvotes").
-				Joins("LEFT JOIN (?) vote_counts ON vote_counts.answer = answers.id", votes_subquery)
-		}).
+	votesSubquery := createVotesSubquery(db)
+	err = applyVoteJoins(
+		db.Table("answers").
+			Where("answers.deleted_at IS NULL AND answers.parent IS NULL AND answers.question = ?", question.ID),
+		votesSubquery,
+	).
+		Preload(preloadingString[:len(preloadingString)-1], createPreloadFunction(votesSubquery)).
 		Find(&answers).Error
 
 	if err != nil {
