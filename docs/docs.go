@@ -124,6 +124,68 @@ const docTemplate = `{
                         }
                     }
                 }
+            },
+            "patch": {
+                "description": "Given an andwer ID, update the answer",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "answer"
+                ],
+                "summary": "Update an answer",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Answer id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/httputil.ApiError"
+                        }
+                    }
+                }
+            }
+        },
+        "/answers/{id}/replies": {
+            "get": {
+                "description": "Given an answer ID, return its replies",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "answer"
+                ],
+                "summary": "Get answer replies",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Answer id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_cartabinaria_polleg_models.AnswerResponse"
+                        }
+                    }
+                }
             }
         },
         "/documents": {
@@ -274,7 +336,7 @@ const docTemplate = `{
                 }
             },
             "delete": {
-                "description": "Given an andwer ID, delete the question",
+                "description": "Given a question ID, delete the question",
                 "produces": [
                     "application/json"
                 ],
@@ -345,6 +407,53 @@ const docTemplate = `{
                 }
             }
         },
+        "github_com_cartabinaria_polleg_models.AnswerResponse": {
+            "type": "object",
+            "properties": {
+                "can_i_delete": {
+                    "type": "boolean"
+                },
+                "content": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "downvotes": {
+                    "type": "integer"
+                },
+                "i_voted": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "parent": {
+                    "type": "integer"
+                },
+                "question": {
+                    "type": "integer"
+                },
+                "replies": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.AnswerResponse"
+                    }
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "upvotes": {
+                    "type": "integer"
+                },
+                "user": {
+                    "type": "string"
+                },
+                "user_avatar_url": {
+                    "type": "string"
+                }
+            }
+        },
         "httputil.ApiError": {
             "type": "object",
             "properties": {
@@ -358,9 +467,6 @@ const docTemplate = `{
             "properties": {
                 "anonymous": {
                     "type": "boolean"
-                },
-                "content": {
-                    "type": "string"
                 },
                 "created_at": {
                     "type": "string"
@@ -398,6 +504,9 @@ const docTemplate = `{
         "models.AnswerResponse": {
             "type": "object",
             "properties": {
+                "can_i_delete": {
+                    "type": "boolean"
+                },
                 "content": {
                     "type": "string"
                 },
@@ -405,6 +514,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "downvotes": {
+                    "type": "integer"
+                },
+                "i_voted": {
                     "type": "integer"
                 },
                 "id": {
