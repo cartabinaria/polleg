@@ -25,6 +25,11 @@ func ConvertAnswerToAPI(answer models.Answer, isAdmin bool, requesterID int) (*m
 		return nil, err
 	}
 
+	var latestVersion models.AnswerVersions
+	if err := db.Where("answer = ?", answer.ID).Last(&latestVersion).Error; err != nil {
+		return nil, err
+	}
+
 	var avatar, username, content string
 
 	if answer.State != models.AnswerStateVisible {
@@ -34,11 +39,11 @@ func ConvertAnswerToAPI(answer models.Answer, isAdmin bool, requesterID int) (*m
 	} else if answer.Anonymous {
 		avatar = util.GenerateAnonymousAvatar(usr.Alias)
 		username = usr.Alias
-		content = answer.Content
+		content = latestVersion.Content
 	} else {
 		avatar = fmt.Sprintf("https://avatars.githubusercontent.com/u/%d?v=4", usr.ID)
 		username = usr.Username
-		content = answer.Content
+		content = latestVersion.Content
 	}
 
 	var voteValue models.VoteValue
@@ -78,7 +83,6 @@ func ConvertAnswerToAPI(answer models.Answer, isAdmin bool, requesterID int) (*m
 		Replies:       replies,
 		CanIDelete:    isAdmin || int(answer.UserId) == requesterID,
 		IVoted:        voteValue,
-		EditedByAdmin: answer.EditedByAdmin,
 	}, nil
 
 }
@@ -131,15 +135,29 @@ func PostAnswerHandler(res http.ResponseWriter, req *http.Request) {
 		Question:  ans.Question,
 		Parent:    ans.Parent,
 		UserId:    user.ID,
-		Content:   ans.Content,
 		Upvotes:   0,
 		Downvotes: 0,
 		Anonymous: ans.Anonymous,
 	}
 
+	version := models.AnswerVersions{
+		Answer:  answer.ID,
+		Content: ans.Content,
+	}
+
 	err = db.Create(&answer).Error
 	if err != nil {
 		slog.Error("error while creating the answer", "answer", answer, "err", err)
+		httputil.WriteError(res, http.StatusBadRequest, "could not insert the answer")
+		return
+	}
+
+	err = db.Create(&version).Error
+	if err != nil {
+		slog.Error("error while creating the answer", "answer", answer, "err", err)
+		if err = db.Delete(&models.Answer{}, answer.ID).Error; err != nil {
+			slog.Error("error while cleaning up after failed answer creation", "answer", answer, "version", version, "err", err)
+		}
 		httputil.WriteError(res, http.StatusBadRequest, "could not insert the answer")
 		return
 	}
@@ -170,7 +188,7 @@ func PostAnswerHandler(res http.ResponseWriter, req *http.Request) {
 			Parent:        answer.Parent,
 			User:          username,
 			UserAvatarURL: avatar,
-			Content:       answer.Content,
+			Content:       version.Content,
 			Upvotes:       answer.Upvotes,
 			Downvotes:     answer.Downvotes,
 			CanIDelete:    true,
@@ -273,9 +291,9 @@ func UpdateAnswerHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if !user.Admin && answer.UserId != user.ID {
-		slog.Error("you are not an admin or the owner of the answer", "err", err)
-		httputil.WriteError(res, http.StatusUnauthorized, "you are not an admin or the owner of the answer")
+	if answer.UserId != user.ID {
+		slog.Error("you are not the owner of the answer", "err", err)
+		httputil.WriteError(res, http.StatusUnauthorized, "you are not the owner of the answer")
 		return
 	}
 
@@ -284,15 +302,12 @@ func UpdateAnswerHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	answer.Content = body.Content
-
-	if answer.UserId != user.ID && user.Admin {
-		answer.EditedByAdmin = true
-	} else {
-		answer.EditedByAdmin = false
+	version := models.AnswerVersions{
+		Answer:  answer.ID,
+		Content: body.Content,
 	}
 
-	if err := db.Save(&answer).Error; err != nil {
+	if err := db.Create(&version).Error; err != nil {
 		slog.Error("couldn't update answer", "err", err)
 		httputil.WriteError(res, http.StatusInternalServerError, "couldn't update answer")
 		return
@@ -309,7 +324,7 @@ func UpdateAnswerHandler(res http.ResponseWriter, req *http.Request) {
 }
 
 // @Summary		Get answer replies
-// @Description	Given an andwer ID, return its replies
+// @Description	Given an answer ID, return its replies
 // @Tags			answer
 // @Param			id	path	string	true	"Answer id"
 // @Produce		json

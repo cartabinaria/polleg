@@ -16,15 +16,20 @@ type Answer struct {
 	Question uint  `json:"question" gorm:"foreignKey:Question;references:ID"`
 	Parent   *uint `json:"parent"`
 
-	UserId        uint        `json:"-"`
-	Content       string      `json:"content"`
-	Upvotes       uint32      `json:"upvotes" gorm:"->"`
-	Downvotes     uint32      `json:"downvotes" gorm:"->"`
-	Replies       []Answer    `json:"replies" gorm:"foreignKey:Parent;references:ID"`
-	Votes         []Vote      `json:"-" gorm:"foreignKey:Answer;references:ID"`
-	Anonymous     bool        `json:"anonymous"`
-	State         AnswerState `json:"state"`
-	EditedByAdmin bool        `json:"edited_by_admin"`
+	UserId    uint        `json:"-"`
+	Upvotes   uint32      `json:"upvotes" gorm:"->"`
+	Downvotes uint32      `json:"downvotes" gorm:"->"`
+	Replies   []Answer    `json:"replies" gorm:"foreignKey:Parent;references:ID"`
+	Votes     []Vote      `json:"-" gorm:"foreignKey:Answer;references:ID"`
+	Anonymous bool        `json:"anonymous"`
+	State     AnswerState `json:"state"`
+}
+
+type AnswerVersions struct {
+	ID uint `json:"id" gorm:"primarykey"`
+
+	Answer  uint   `gorm:"index; not null;"`
+	Content string `json:"content"`
 }
 
 type AnswerState uint8

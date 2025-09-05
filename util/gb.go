@@ -39,7 +39,12 @@ func cleanUnusedImages(imagesPath string) error {
 	}
 
 	var answersContent []string
-	if err := db.Model(&models.Answer{}).Pluck("content", &answersContent).Error; err != nil {
+	err := db.Table("answer_versions av1").
+		Select("av1.content").
+		Joins("INNER JOIN (SELECT answer, MAX(id) as max_id FROM answer_versions GROUP BY answer) av2 ON av1.answer = av2.answer AND av1.id = av2.max_id").
+		Pluck("content", &answersContent).Error
+
+	if err != nil {
 		return err
 	}
 
