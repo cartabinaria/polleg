@@ -108,6 +108,7 @@ func main() {
 
 	// proposal managers
 	mux.Handle("/proposals", authChain.ForFunc(proposal.ProposalHandler))
+	mux.Handle("/proposals/:id/approv", authChain.ForFunc(proposal.ProposalByIdHandler))
 	mux.Handle("/proposals/:id", authChain.ForFunc(proposal.ProposalByIdHandler))
 	mux.Handle("/proposals/document/:id", authChain.ForFunc(proposal.ProposalByDocumentHandler))
 
