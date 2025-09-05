@@ -182,18 +182,29 @@ func PostAnswerHandler(res http.ResponseWriter, req *http.Request) {
 		Content: ans.Content,
 	}
 
-	err = tx.Create(&version).Error
-	if err != nil {
-		tx.Rollback()
-		slog.Error("error while creating the answer version", "answer", answer, "version", version, "err", err)
-		httputil.WriteError(res, http.StatusBadRequest, "could not insert the answer")
-		return
-	}
+	err = db.Transaction(func(tx *gorm.DB) error {
+		// Create answer
+		if err := tx.Create(&answer).Error; err != nil {
+			slog.Error("error while creating the answer", "answer", answer, "err", err)
+			return err
+		}
 
-	// Commit transaction
-	if err = tx.Commit().Error; err != nil {
-		slog.Error("error committing transaction", "answer", answer, "version", version, "err", err)
-		httputil.WriteError(res, http.StatusInternalServerError, "could not complete answer creation")
+		// Create answer version
+		version := models.AnswerVersions{
+			Answer:  answer.ID,
+			Content: ans.Content,
+		}
+
+		if err := tx.Create(&version).Error; err != nil {
+			slog.Error("error while creating the answer version", "answer", answer, "version", version, "err", err)
+			return err
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		httputil.WriteError(res, http.StatusBadRequest, "could not insert the answer")
 		return
 	}
 
