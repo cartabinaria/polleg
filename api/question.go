@@ -1,16 +1,17 @@
 package api
 
 import (
+	"net/http"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/cartabinaria/auth/pkg/httputil"
 	"github.com/cartabinaria/auth/pkg/middleware"
 	"github.com/cartabinaria/polleg/models"
 	"github.com/cartabinaria/polleg/util"
 	"github.com/kataras/muxie"
 	"golang.org/x/exp/slog"
-	"net/http"
-	"strconv"
-	"strings"
-	"time"
 
 	"gorm.io/gorm"
 )

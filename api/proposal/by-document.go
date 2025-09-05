@@ -12,28 +12,26 @@ import (
 	"golang.org/x/exp/slog"
 )
 
-func ProposalByDocumentHandler(res http.ResponseWriter, req *http.Request) {
+// @Summary		Get proposals by document id
+// @Description	Get all proposals for a document, given its ID
+// @Tags			proposal
+// @Param			id	path	string	true	"Document id"
+// @Produce		json
+// @Success		200	{object}	DocumentProposal
+// @Failure		400	{object}	httputil.ApiError
+// @Router			/proposals/document/{id} [get]
+func GetProposalByDocumentHandler(res http.ResponseWriter, req *http.Request) {
 	if !middleware.GetAdmin(req) {
 		httputil.WriteError(res, http.StatusForbidden, "you are not admin")
 		return
 	}
 
-	switch req.Method {
-	case http.MethodDelete:
-		deleteProposalByDocumentHandler(res)
-	case http.MethodGet:
-		getProposalByDocumentHandler(res)
-	default:
-		httputil.WriteError(res, http.StatusMethodNotAllowed, "invalid method")
-	}
-}
-
-func getProposalByDocumentHandler(res http.ResponseWriter) {
 	db := util.GetDb()
 	docID := muxie.GetParam(res, "id")
 
 	var questions []Proposal
 	if err := db.Where(models.Question{Document: docID}).Find(&questions).Error; err != nil {
+		slog.Error("db query failed", "err", err)
 		httputil.WriteError(res, http.StatusInternalServerError, "db query failed")
 		return
 	}
@@ -48,7 +46,20 @@ func getProposalByDocumentHandler(res http.ResponseWriter) {
 	})
 }
 
-func deleteProposalByDocumentHandler(res http.ResponseWriter) {
+// @Summary		Delete all proposals for a document
+// @Description	Given a document ID, delete all its proposals
+// @Tags			proposal
+// @Param			id	path	string	true	"Document id"
+// @Produce		json
+// @Success		200	{object}	nil
+// @Failure		400	{object}	httputil.ApiError
+// @Router			/proposals/document/{id} [delete]
+func DeleteProposalByDocumentHandler(res http.ResponseWriter, req *http.Request) {
+	if !middleware.GetAdmin(req) {
+		httputil.WriteError(res, http.StatusForbidden, "you are not admin")
+		return
+	}
+
 	db := util.GetDb()
 	docID := muxie.GetParam(res, "id")
 

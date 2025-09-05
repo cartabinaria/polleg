@@ -66,7 +66,7 @@ func checkFileType(reader io.Reader) (ImageType, error) {
 // @Produce		json
 // @Success		200	{file}		binary
 // @Failure		400	{object}	httputil.ApiError
-// @Router			/questions/{id} [get]
+// @Router			/images/{id} [get]
 func GetImageHandler(imagesPath string) http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
 		if req.Method != http.MethodGet {

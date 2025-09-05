@@ -10,23 +10,20 @@ import (
 	"github.com/kataras/muxie"
 )
 
-func ProposalByIdHandler(res http.ResponseWriter, req *http.Request) {
+// @Summary		Get proposal by id
+// @Description	Get a proposal given its ID
+// @Tags			proposal
+// @Param			id	path	string	true	"Proposal id"
+// @Produce		json
+// @Success		200	{object}	Proposal
+// @Failure		400	{object}	httputil.ApiError
+// @Router			/proposals/{id} [get]
+func GetProposalByIdHandler(res http.ResponseWriter, req *http.Request) {
 	if !middleware.GetAdmin(req) {
 		httputil.WriteError(res, http.StatusForbidden, "you are not admin")
 		return
 	}
 
-	switch req.Method {
-	case http.MethodDelete:
-		deleteProposalByIdHandler(res)
-	case http.MethodGet:
-		getProposalByIdHandler(res)
-	default:
-		httputil.WriteError(res, http.StatusMethodNotAllowed, "invalid method")
-	}
-}
-
-func getProposalByIdHandler(res http.ResponseWriter) {
 	db := util.GetDb()
 	proposalID := muxie.GetParam(res, "id")
 	propID, err := strconv.ParseUint(proposalID, 10, 0)
@@ -44,7 +41,20 @@ func getProposalByIdHandler(res http.ResponseWriter) {
 	httputil.WriteData(res, http.StatusOK, props)
 }
 
-func deleteProposalByIdHandler(res http.ResponseWriter) {
+// @Summary		Delete a proposal
+// @Description	Given a proposal ID, delete the proposal
+// @Tags			proposal
+// @Param			id	path	string	true	"Proposal id"
+// @Produce		json
+// @Success		200	{object}	nil
+// @Failure		400	{object}	httputil.ApiError
+// @Router			/proposals/{id} [delete]
+func DeleteProposalByIdHandler(res http.ResponseWriter, req *http.Request) {
+	if !middleware.GetAdmin(req) {
+		httputil.WriteError(res, http.StatusForbidden, "you are not admin")
+		return
+	}
+
 	db := util.GetDb()
 	proposalID := muxie.GetParam(res, "id")
 	propID, err := strconv.ParseUint(proposalID, 10, 0)

@@ -291,6 +291,261 @@
                 }
             }
         },
+        "/images/{id}": {
+            "get": {
+                "description": "Given an image ID, return the image",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "image"
+                ],
+                "summary": "Get an image",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Image id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "file"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/httputil.ApiError"
+                        }
+                    }
+                }
+            }
+        },
+        "/proposals": {
+            "get": {
+                "description": "Get all proposals",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "proposal"
+                ],
+                "summary": "Get all proposals",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/api_proposal.DocumentProposal"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/httputil.ApiError"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Insert a new proposal for a document",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "proposal"
+                ],
+                "summary": "Insert a new proposal",
+                "parameters": [
+                    {
+                        "description": "Proposal data to insert",
+                        "name": "proposalReq",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/api_proposal.DocumentProposal"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api_proposal.DocumentProposal"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/httputil.ApiError"
+                        }
+                    }
+                }
+            }
+        },
+        "/proposals/document/{id}": {
+            "get": {
+                "description": "Get all proposals for a document, given its ID",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "proposal"
+                ],
+                "summary": "Get proposals by document id",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Document id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api_proposal.DocumentProposal"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/httputil.ApiError"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Given a document ID, delete all its proposals",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "proposal"
+                ],
+                "summary": "Delete all proposals for a document",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Document id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/httputil.ApiError"
+                        }
+                    }
+                }
+            }
+        },
+        "/proposals/{id}": {
+            "get": {
+                "description": "Get a proposal given its ID",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "proposal"
+                ],
+                "summary": "Get proposal by id",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Proposal id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api_proposal.Proposal"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/httputil.ApiError"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Given a proposal ID, delete the proposal",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "proposal"
+                ],
+                "summary": "Delete a proposal",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Proposal id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/httputil.ApiError"
+                        }
+                    }
+                }
+            }
+        },
+        "/proposals/{id}/approve": {
+            "post": {
+                "description": "Approve a proposal given its id",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "answer"
+                ],
+                "summary": "Approve a proposal",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.Question"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/httputil.ApiError"
+                        }
+                    }
+                }
+            }
+        },
         "/questions/{id}": {
             "get": {
                 "description": "Given a question ID, return the question and all its answers",
@@ -509,6 +764,7 @@
         },
         "api.VoteValue": {
             "type": "integer",
+            "format": "int32",
             "enum": [
                 1,
                 0,
@@ -519,6 +775,44 @@
                 "VoteNone",
                 "VoteDown"
             ]
+        },
+        "api_proposal.DocumentProposal": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "questions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/api_proposal.Proposal"
+                    }
+                }
+            }
+        },
+        "api_proposal.Proposal": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "document": {
+                    "type": "string"
+                },
+                "end": {
+                    "type": "integer"
+                },
+                "id": {
+                    "description": "taken from from gorm.Model, so we can json strigify properly",
+                    "type": "integer"
+                },
+                "start": {
+                    "type": "integer"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
         },
         "httputil.ApiError": {
             "type": "object",
@@ -569,6 +863,7 @@
         },
         "models.AnswerState": {
             "type": "integer",
+            "format": "int32",
             "enum": [
                 0,
                 1,
