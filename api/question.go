@@ -3,6 +3,7 @@ package api
 import (
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/cartabinaria/auth/pkg/httputil"
 	"github.com/cartabinaria/auth/pkg/middleware"
@@ -48,27 +49,24 @@ func GetQuestionHandler(res http.ResponseWriter, req *http.Request) {
 		httputil.WriteError(res, http.StatusNotFound, "question not found")
 		return
 	}
+
 	var answers []models.Answer
-	if err := db.Raw(ANSWERS_QUERY, question.ID).Scan(&answers).Error; err != nil {
+
+	preloadingString := strings.Repeat("Replies.", RepliesDepth)
+
+	votesSubquery := createVotesSubquery(db)
+	err = applyVoteJoins(
+		db.Table("answers").
+			Where("answers.deleted_at IS NULL AND answers.parent IS NULL AND answers.question = ?", question.ID),
+		votesSubquery,
+	).
+		Preload(preloadingString[:len(preloadingString)-1], createPreloadFunction(votesSubquery)).
+		Find(&answers).Error
+
+	if err != nil {
 		slog.Error("could not fetch answers", "err", err)
 		httputil.WriteError(res, http.StatusInternalServerError, "could not fetch answers")
 		return
-	}
-	answersIDs := []uint{}
-	answersIndex := map[uint]int{}
-	for i, answer := range answers {
-		answersIDs = append(answersIDs, answer.ID)
-		answersIndex[answer.ID] = i
-	}
-	var replies []models.Answer
-	if err := db.Model(&models.Answer{}).Where("deleted_at is NULL AND parent IN ?", answersIDs).Find(&replies).Error; err != nil {
-		slog.Error("could not fetch replies", "err", err)
-		httputil.WriteError(res, http.StatusInternalServerError, "could not fetch replies")
-		return
-	}
-	for _, reply := range replies {
-		index := answersIndex[*reply.Parent]
-		answers[index].Replies = append(answers[index].Replies, reply)
 	}
 
 	question.Answers = answers

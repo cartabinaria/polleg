@@ -61,7 +61,7 @@ func main() {
 		os.Exit(1)
 	}
 	db := util.GetDb()
-	err = db.AutoMigrate(&proposal.Proposal{}, &models.Question{}, &models.Answer{}, &models.Vote{}, &models.User{}, &models.Image{})
+	err = db.AutoMigrate(&proposal.Proposal{}, &models.Question{}, &models.Answer{}, &models.Vote{}, &models.User{}, &models.Image{}, models.AnswerVersions{})
 	if err != nil {
 		slog.Error("AutoMigrate failed", "err", err)
 		os.Exit(1)
@@ -95,9 +95,13 @@ func main() {
 	mux.Handle("/answers", authChain.ForFunc(api.PostAnswerHandler))
 	// put up/down votes to an answer
 	mux.Handle("/answers/:id/vote", authChain.ForFunc(api.PostVote))
+	mux.Handle("/answers/:id/replies", authChain.ForFunc(api.GetRepliesHandler))
 	// insert new doc and quesions
 	mux.Handle("/documents", authChain.ForFunc(api.PostDocumentHandler))
 	mux.Handle("/answers/:id", authChain.ForFunc(api.DelAnswerHandler))
+	mux.Handle("/answers/:id", muxie.Methods().
+		Handle("DELETE", authChain.ForFunc(api.DelAnswerHandler)).
+		Handle("PATCH", authChain.ForFunc(api.UpdateAnswerHandler)))
 
 	// Images
 	mux.Handle("/images", authChain.ForFunc(api.PostImageHandler(config.ImagesPath)))

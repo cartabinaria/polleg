@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/cartabinaria/auth/pkg/httputil"
 	"github.com/cartabinaria/auth/pkg/middleware"
@@ -15,28 +16,38 @@ import (
 	"gorm.io/gorm"
 )
 
-var (
-	VOTES_QUERY = fmt.Sprintf(`
-  SELECT votes.answer,
-				 COUNT(CASE votes.vote WHEN %d THEN 1 ELSE NULL END) as upvotes,
-				 COUNT(CASE votes.vote WHEN %d THEN 1 ELSE NULL END) as downvotes
-  FROM votes
-  GROUP BY Answer
-`, VoteUp, VoteDown)
-	ANSWERS_QUERY = fmt.Sprintf(`
-  SELECT *
-  FROM answers
-  LEFT JOIN (%s) vote_counts ON vote_counts.answer = answers.id
-  WHERE answers.deleted_at is NULL
-		AND answers.parent is NULL
-		AND answers.question = ?
-`, VOTES_QUERY)
-)
+const RepliesDepth = 2
+
+// createVotesSubquery creates a reusable subquery for vote counting
+func createVotesSubquery(db *gorm.DB) *gorm.DB {
+	return db.Table("votes").
+		Select("votes.answer, COUNT(CASE votes.vote WHEN ? THEN 1 ELSE NULL END) as upvotes, COUNT(CASE votes.vote WHEN ? THEN 1 ELSE NULL END) as downvotes", VoteUp, VoteDown).
+		Group("votes.answer")
+}
+
+// applyVoteJoins applies the votes subquery and selects answers with vote counts
+func applyVoteJoins(query *gorm.DB, votesSubquery *gorm.DB) *gorm.DB {
+	return query.
+		Select("answers.*, vote_counts.upvotes, vote_counts.downvotes").
+		Joins("LEFT JOIN (?) vote_counts ON vote_counts.answer = answers.id", votesSubquery)
+}
+
+// createPreloadFunction creates the preload function with vote joins
+func createPreloadFunction(votesSubquery *gorm.DB) func(db *gorm.DB) *gorm.DB {
+	return func(db *gorm.DB) *gorm.DB {
+		return applyVoteJoins(db, votesSubquery)
+	}
+}
 
 func ConvertAnswerToAPI(answer models.Answer, isAdmin bool, requesterID int) (*models.AnswerResponse, error) {
 	db := util.GetDb()
 	usr, err := util.GetUserByID(db, answer.UserId)
 	if err != nil {
+		return nil, err
+	}
+
+	var latestVersion models.AnswerVersions
+	if err := db.Where("answer = ?", answer.ID).Last(&latestVersion).Error; err != nil {
 		return nil, err
 	}
 
@@ -49,11 +60,11 @@ func ConvertAnswerToAPI(answer models.Answer, isAdmin bool, requesterID int) (*m
 	} else if answer.Anonymous {
 		avatar = util.GenerateAnonymousAvatar(usr.Alias)
 		username = usr.Alias
-		content = answer.Content
+		content = latestVersion.Content
 	} else {
 		avatar = fmt.Sprintf("https://avatars.githubusercontent.com/u/%d?v=4", usr.ID)
 		username = usr.Username
-		content = answer.Content
+		content = latestVersion.Content
 	}
 
 	var voteValue models.VoteValue
@@ -139,21 +150,60 @@ func PostAnswerHandler(res http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	// TODO: upvotes and downvotes should really be just the result of a
-	// COUNT() aggregator on the votes table
 	answer := models.Answer{
 		Question:  ans.Question,
 		Parent:    ans.Parent,
 		UserId:    user.ID,
-		Content:   ans.Content,
 		Upvotes:   0,
 		Downvotes: 0,
 		Anonymous: ans.Anonymous,
 	}
 
-	err = db.Create(&answer).Error
+	// Start transaction
+	tx := db.Begin()
+	if tx.Error != nil {
+		slog.Error("error starting transaction", "err", tx.Error)
+		httputil.WriteError(res, http.StatusInternalServerError, "could not start transaction")
+		return
+	}
+
+	// Create answer
+	err = tx.Create(&answer).Error
 	if err != nil {
+		tx.Rollback()
 		slog.Error("error while creating the answer", "answer", answer, "err", err)
+		httputil.WriteError(res, http.StatusBadRequest, "could not insert the answer")
+		return
+	}
+
+	// Create answer version
+	version := models.AnswerVersions{
+		Answer:  answer.ID,
+		Content: ans.Content,
+	}
+
+	err = db.Transaction(func(tx *gorm.DB) error {
+		// Create answer
+		if err := tx.Create(&answer).Error; err != nil {
+			slog.Error("error while creating the answer", "answer", answer, "err", err)
+			return err
+		}
+
+		// Create answer version
+		version := models.AnswerVersions{
+			Answer:  answer.ID,
+			Content: ans.Content,
+		}
+
+		if err := tx.Create(&version).Error; err != nil {
+			slog.Error("error while creating the answer version", "answer", answer, "version", version, "err", err)
+			return err
+		}
+
+		return nil
+	})
+
+	if err != nil {
 		httputil.WriteError(res, http.StatusBadRequest, "could not insert the answer")
 		return
 	}
@@ -184,7 +234,7 @@ func PostAnswerHandler(res http.ResponseWriter, req *http.Request) {
 			Parent:        answer.Parent,
 			User:          username,
 			UserAvatarURL: avatar,
-			Content:       answer.Content,
+			Content:       version.Content,
 			Upvotes:       answer.Upvotes,
 			Downvotes:     answer.Downvotes,
 			CanIDelete:    true,
@@ -225,7 +275,7 @@ func DelAnswerHandler(res http.ResponseWriter, req *http.Request) {
 
 	if !user.Admin && answer.UserId != user.ID {
 		slog.Error("you are not an admin or the owner of the answer", "err", err)
-		httputil.WriteError(res, http.StatusInternalServerError, "you are not an admin or the owner of the answer")
+		httputil.WriteError(res, http.StatusUnauthorized, "you are not an admin or the owner of the answer")
 		return
 	}
 
@@ -234,7 +284,7 @@ func DelAnswerHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if user.ID != answer.UserId {
+	if user.ID != answer.UserId && user.Admin {
 		answer.State = models.AnswerStateDeletedByAdmin
 	} else {
 		answer.State = models.AnswerStateDeletedByUser
@@ -247,4 +297,140 @@ func DelAnswerHandler(res http.ResponseWriter, req *http.Request) {
 	}
 
 	res.WriteHeader(http.StatusNoContent)
+}
+
+// @Summary		Update an answer
+// @Description	Given an andwer ID, update the answer
+// @Tags			answer
+// @Param			id	path	string	true	"Answer id"
+// @Produce		json
+// @Success		200	{object}	nil
+// @Failure		400	{object}	httputil.ApiError
+// @Router			/answers/{id} [patch]
+func UpdateAnswerHandler(res http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodPatch {
+		httputil.WriteError(res, http.StatusMethodNotAllowed, "invalid method")
+		return
+	}
+
+	user := middleware.MustGetUser(req)
+	db := util.GetDb()
+	rawAnsID := muxie.GetParam(res, "id")
+
+	aID, err := strconv.ParseUint(rawAnsID, 10, 0)
+	if err != nil {
+		httputil.WriteError(res, http.StatusBadRequest, "invalid question id")
+		return
+	}
+
+	var body models.UpdateAnswerRequest
+	err = json.NewDecoder(req.Body).Decode(&body)
+	if err != nil {
+		httputil.WriteError(res, http.StatusBadRequest, fmt.Sprintf("decode error: %v", err))
+		return
+	}
+
+	var answer models.Answer
+	if err := db.First(&answer, uint(aID)).Error; err != nil {
+		slog.Error("answer not found", "err", err)
+		httputil.WriteError(res, http.StatusNotFound, "answer not found")
+		return
+	}
+
+	if answer.UserId != user.ID {
+		slog.Error("you are not the owner of the answer", "err", err)
+		httputil.WriteError(res, http.StatusUnauthorized, "you are not the owner of the answer")
+		return
+	}
+
+	if answer.State != models.AnswerStateVisible {
+		httputil.WriteError(res, http.StatusBadRequest, "you cannot update a deleted answer")
+		return
+	}
+
+	version := models.AnswerVersions{
+		Answer:  answer.ID,
+		Content: body.Content,
+	}
+
+	if err := db.Create(&version).Error; err != nil {
+		slog.Error("couldn't update answer", "err", err)
+		httputil.WriteError(res, http.StatusInternalServerError, "couldn't update answer")
+		return
+	}
+
+	responseData, err := ConvertAnswerToAPI(answer, user.Admin, int(user.ID))
+	if err != nil {
+		slog.Error("couldn't generate response", "err", err)
+		httputil.WriteError(res, http.StatusInternalServerError, "couldn't generate response")
+		return
+	}
+
+	httputil.WriteData(res, http.StatusOK, responseData)
+}
+
+// @Summary		Get answer replies
+// @Description	Given an answer ID, return its replies
+// @Tags			answer
+// @Param			id	path	string	true	"Answer id"
+// @Produce		json
+// @Success		200	{object}	nil
+// @Failure		400	{object}	models.AnswerResponse[]
+// @Router			/answers/{id}/replies [get]
+func GetRepliesHandler(res http.ResponseWriter, req *http.Request) {
+	// Check method GET is used
+	if req.Method != http.MethodGet {
+		httputil.WriteError(res, http.StatusMethodNotAllowed, "invalid method")
+		return
+	}
+	db := util.GetDb()
+	rawQID := muxie.GetParam(res, "id")
+
+	user, err := middleware.GetUser(req)
+	requesterID := -1
+	if err == nil {
+		requesterID = int(user.ID)
+	}
+	isAdmin := middleware.GetAdmin(req)
+
+	aID, err := strconv.ParseUint(rawQID, 10, 0)
+	if err != nil {
+		httputil.WriteError(res, http.StatusBadRequest, "invalid answer id")
+		return
+	}
+
+	var answer models.Answer
+
+	if err := db.First(&answer, uint(aID)).Error; err != nil {
+		slog.Error("answer not found", "err", err)
+		httputil.WriteError(res, http.StatusNotFound, "answer not found")
+		return
+	}
+
+	var replies []models.Answer
+	preloadingString := strings.Repeat("Replies.", RepliesDepth-1)
+
+	votesSubquery := createVotesSubquery(db)
+	err = applyVoteJoins(
+		db.Table("answers").
+			Where("answers.deleted_at IS NULL AND answers.parent = ?", answer.ID),
+		votesSubquery,
+	).
+		Preload(preloadingString[:len(preloadingString)-1], createPreloadFunction(votesSubquery)).
+		Find(&replies).Error
+
+	if err != nil {
+		slog.Error("could not fetch answers", "err", err)
+		httputil.WriteError(res, http.StatusInternalServerError, "could not fetch answers")
+		return
+	}
+
+	answer.Replies = replies
+	responseData, err := ConvertAnswerToAPI(answer, isAdmin, requesterID)
+	if err != nil {
+		httputil.WriteError(res, http.StatusInternalServerError, "could not create response")
+		return
+	}
+
+	httputil.WriteData(res, http.StatusOK, responseData)
 }

@@ -17,13 +17,20 @@ type Answer struct {
 	Parent   *uint `json:"parent"`
 
 	UserId    uint        `json:"-"`
-	Content   string      `json:"content"`
 	Upvotes   uint32      `json:"upvotes" gorm:"->"`
 	Downvotes uint32      `json:"downvotes" gorm:"->"`
 	Replies   []Answer    `json:"replies" gorm:"foreignKey:Parent;references:ID"`
 	Votes     []Vote      `json:"-" gorm:"foreignKey:Answer;references:ID"`
 	Anonymous bool        `json:"anonymous"`
 	State     AnswerState `json:"state"`
+}
+
+type AnswerVersions struct {
+	ID        uint      `json:"id" gorm:"primarykey"`
+	CreatedAt time.Time `json:"created_at"`
+
+	Answer  uint   `gorm:"index; not null;"`
+	Content string `json:"content"`
 }
 
 type AnswerState uint8
@@ -77,6 +84,10 @@ type PostAnswerRequest struct {
 	Parent    *uint  `json:"parent"`
 	Content   string `json:"content"`
 	Anonymous bool   `json:"anonymous"`
+}
+
+type UpdateAnswerRequest struct {
+	Content string `json:"content"`
 }
 
 type AnswerResponse struct {
