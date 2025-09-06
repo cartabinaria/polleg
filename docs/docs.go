@@ -45,7 +45,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.VoteResponse"
+                            "$ref": "#/definitions/api.Vote"
                         }
                     },
                     "400": {
@@ -82,7 +82,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.AnswerResponse"
+                            "$ref": "#/definitions/api.Answer"
                         }
                     },
                     "400": {
@@ -182,7 +182,7 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_cartabinaria_polleg_models.AnswerResponse"
+                            "$ref": "#/definitions/api.Answer"
                         }
                     }
                 }
@@ -286,7 +286,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.ImageResponse"
+                            "$ref": "#/definitions/api.Image"
                         }
                     },
                     "400": {
@@ -323,7 +323,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/models.QuestionResponse"
+                                "$ref": "#/definitions/api.Question"
                             }
                         }
                     },
@@ -368,6 +368,53 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "api.Answer": {
+            "type": "object",
+            "properties": {
+                "can_i_delete": {
+                    "type": "boolean"
+                },
+                "content": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "downvotes": {
+                    "type": "integer"
+                },
+                "i_voted": {
+                    "$ref": "#/definitions/api.VoteValue"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "parent": {
+                    "type": "integer"
+                },
+                "question": {
+                    "type": "integer"
+                },
+                "replies": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/api.Answer"
+                    }
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "upvotes": {
+                    "type": "integer"
+                },
+                "user": {
+                    "type": "string"
+                },
+                "user_avatar_url": {
+                    "type": "string"
+                }
+            }
+        },
         "api.Coord": {
             "type": "object",
             "properties": {
@@ -393,6 +440,17 @@ const docTemplate = `{
                 }
             }
         },
+        "api.Image": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "url": {
+                    "type": "string"
+                }
+            }
+        },
         "api.PostDocumentRequest": {
             "type": "object",
             "properties": {
@@ -407,52 +465,67 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_cartabinaria_polleg_models.AnswerResponse": {
+        "api.Question": {
             "type": "object",
             "properties": {
-                "can_i_delete": {
-                    "type": "boolean"
-                },
-                "content": {
-                    "type": "string"
+                "answers": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/api.Answer"
+                    }
                 },
                 "created_at": {
                     "type": "string"
                 },
-                "downvotes": {
-                    "type": "integer"
+                "document": {
+                    "type": "string"
                 },
-                "i_voted": {
+                "end": {
                     "type": "integer"
                 },
                 "id": {
                     "type": "integer"
                 },
-                "parent": {
+                "start": {
                     "type": "integer"
-                },
-                "question": {
-                    "type": "integer"
-                },
-                "replies": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/models.AnswerResponse"
-                    }
                 },
                 "updated_at": {
                     "type": "string"
-                },
-                "upvotes": {
+                }
+            }
+        },
+        "api.Vote": {
+            "type": "object",
+            "properties": {
+                "answer": {
                     "type": "integer"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "updatedAt": {
+                    "type": "string"
                 },
                 "user": {
                     "type": "string"
                 },
-                "user_avatar_url": {
-                    "type": "string"
+                "vote": {
+                    "type": "integer"
                 }
             }
+        },
+        "api.VoteValue": {
+            "type": "integer",
+            "enum": [
+                1,
+                0,
+                -1
+            ],
+            "x-enum-varnames": [
+                "VoteUp",
+                "VoteNone",
+                "VoteDown"
+            ]
         },
         "httputil.ApiError": {
             "type": "object",
@@ -501,56 +574,8 @@ const docTemplate = `{
                 }
             }
         },
-        "models.AnswerResponse": {
-            "type": "object",
-            "properties": {
-                "can_i_delete": {
-                    "type": "boolean"
-                },
-                "content": {
-                    "type": "string"
-                },
-                "created_at": {
-                    "type": "string"
-                },
-                "downvotes": {
-                    "type": "integer"
-                },
-                "i_voted": {
-                    "type": "integer"
-                },
-                "id": {
-                    "type": "integer"
-                },
-                "parent": {
-                    "type": "integer"
-                },
-                "question": {
-                    "type": "integer"
-                },
-                "replies": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/models.AnswerResponse"
-                    }
-                },
-                "updated_at": {
-                    "type": "string"
-                },
-                "upvotes": {
-                    "type": "integer"
-                },
-                "user": {
-                    "type": "string"
-                },
-                "user_avatar_url": {
-                    "type": "string"
-                }
-            }
-        },
         "models.AnswerState": {
             "type": "integer",
-            "format": "int32",
             "enum": [
                 0,
                 1,
@@ -561,17 +586,6 @@ const docTemplate = `{
                 "AnswerStateDeletedByUser",
                 "AnswerStateDeletedByAdmin"
             ]
-        },
-        "models.ImageResponse": {
-            "type": "object",
-            "properties": {
-                "id": {
-                    "type": "string"
-                },
-                "url": {
-                    "type": "string"
-                }
-            }
         },
         "models.PostAnswerRequest": {
             "type": "object",
@@ -617,55 +631,6 @@ const docTemplate = `{
                 },
                 "updated_at": {
                     "type": "string"
-                }
-            }
-        },
-        "models.QuestionResponse": {
-            "type": "object",
-            "properties": {
-                "answers": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/models.AnswerResponse"
-                    }
-                },
-                "created_at": {
-                    "type": "string"
-                },
-                "document": {
-                    "type": "string"
-                },
-                "end": {
-                    "type": "integer"
-                },
-                "id": {
-                    "type": "integer"
-                },
-                "start": {
-                    "type": "integer"
-                },
-                "updated_at": {
-                    "type": "string"
-                }
-            }
-        },
-        "models.VoteResponse": {
-            "type": "object",
-            "properties": {
-                "answer": {
-                    "type": "integer"
-                },
-                "createdAt": {
-                    "type": "string"
-                },
-                "updatedAt": {
-                    "type": "string"
-                },
-                "user": {
-                    "type": "string"
-                },
-                "vote": {
-                    "type": "integer"
                 }
             }
         }

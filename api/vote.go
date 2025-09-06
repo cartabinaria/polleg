@@ -5,19 +5,35 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/cartabinaria/auth/pkg/httputil"
 	"github.com/cartabinaria/auth/pkg/middleware"
-	"github.com/cartabinaria/polleg/models"
 	"github.com/cartabinaria/polleg/util"
+	"github.com/cartabinaria/polleg/models"
 	"github.com/kataras/muxie"
 	"gorm.io/gorm/clause"
 )
 
+type VoteValue int8
+
+type Pick struct {
+	Vote VoteValue `json:"vote"`
+}
+
+type Vote struct {
+	Answer uint   `json:"answer"`
+	User   string `json:"user"`
+	Vote   int8   `json:"vote"`
+
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
 const (
-	VoteUp   models.VoteValue = 1
-	VoteNone models.VoteValue = 0
-	VoteDown models.VoteValue = -1
+	VoteUp   VoteValue = 1
+	VoteNone VoteValue = 0
+	VoteDown VoteValue = -1
 )
 
 // get given vote to an answer
@@ -37,13 +53,13 @@ func GetUserVote(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	var vote models.Vote
+	var vote Vote
 	if err = db.First(&vote, "answer = ? and \"user\" = ?", ansID, user.ID).Error; err != nil {
 		httputil.WriteError(res, http.StatusBadRequest, "the referenced vote does not exist")
 		return
 	}
 
-	httputil.WriteData(res, http.StatusOK, models.VoteResponse{
+	httputil.WriteData(res, http.StatusOK, Vote{
 		Answer:    vote.Answer,
 		User:      user.Username,
 		Vote:      int8(vote.Vote),
@@ -57,7 +73,7 @@ func GetUserVote(res http.ResponseWriter, req *http.Request) {
 // @Tags			vote
 // @Produce		json
 // @Param			id	path		string	true	"code query parameter"
-// @Success		200	{object}	models.VoteResponse
+// @Success		200	{object}	Vote
 // @Failure		400	{object}	httputil.ApiError
 // @Router			/answer/{id}/vote [post]
 func PostVote(res http.ResponseWriter, req *http.Request) {
@@ -80,14 +96,14 @@ func PostVote(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	var v models.PostVoteRequest
-	err = json.NewDecoder(req.Body).Decode(&v)
+	var p Pick
+	err = json.NewDecoder(req.Body).Decode(&p)
 	if err != nil {
 		httputil.WriteError(res, http.StatusBadRequest, fmt.Sprintf("decode error: %v", err))
 		return
 	}
 
-	var ans models.Answer
+	var ans Answer
 	if err = db.First(&ans, ansID).Error; err != nil {
 		httputil.WriteError(res, http.StatusBadRequest, "the referenced answer does not exist")
 		return
@@ -96,9 +112,9 @@ func PostVote(res http.ResponseWriter, req *http.Request) {
 	vote := models.Vote{
 		Answer: ans.ID,
 		UserId: user.ID,
-		Vote:   int8(v.Vote),
+		Vote:   int8(p.Vote),
 	}
-	switch v.Vote {
+	switch p.Vote {
 	case VoteUp, VoteDown:
 		// If a vote already exists, and
 		err := db.Clauses(clause.OnConflict{
@@ -126,7 +142,7 @@ func PostVote(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	httputil.WriteData(res, http.StatusOK, models.VoteResponse{
+	httputil.WriteData(res, http.StatusOK, Vote{
 		Answer:    vote.Answer,
 		User:      user.Username,
 		Vote:      int8(vote.Vote),

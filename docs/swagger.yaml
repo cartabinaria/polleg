@@ -1,5 +1,36 @@
 basePath: /
 definitions:
+  api.Answer:
+    properties:
+      can_i_delete:
+        type: boolean
+      content:
+        type: string
+      created_at:
+        type: string
+      downvotes:
+        type: integer
+      i_voted:
+        $ref: '#/definitions/api.VoteValue'
+      id:
+        type: integer
+      parent:
+        type: integer
+      question:
+        type: integer
+      replies:
+        items:
+          $ref: '#/definitions/api.Answer'
+        type: array
+      updated_at:
+        type: string
+      upvotes:
+        type: integer
+      user:
+        type: string
+      user_avatar_url:
+        type: string
+    type: object
   api.Coord:
     properties:
       end:
@@ -16,6 +47,13 @@ definitions:
           $ref: '#/definitions/models.Question'
         type: array
     type: object
+  api.Image:
+    properties:
+      id:
+        type: string
+      url:
+        type: string
+    type: object
   api.PostDocumentRequest:
     properties:
       coords:
@@ -25,37 +63,48 @@ definitions:
       id:
         type: string
     type: object
-  github_com_cartabinaria_polleg_models.AnswerResponse:
+  api.Question:
     properties:
-      can_i_delete:
-        type: boolean
-      content:
-        type: string
+      answers:
+        items:
+          $ref: '#/definitions/api.Answer'
+        type: array
       created_at:
         type: string
-      downvotes:
-        type: integer
-      i_voted:
+      document:
+        type: string
+      end:
         type: integer
       id:
         type: integer
-      parent:
+      start:
         type: integer
-      question:
-        type: integer
-      replies:
-        items:
-          $ref: '#/definitions/models.AnswerResponse'
-        type: array
       updated_at:
         type: string
-      upvotes:
+    type: object
+  api.Vote:
+    properties:
+      answer:
         type: integer
+      createdAt:
+        type: string
+      updatedAt:
+        type: string
       user:
         type: string
-      user_avatar_url:
-        type: string
+      vote:
+        type: integer
     type: object
+  api.VoteValue:
+    enum:
+    - 1
+    - 0
+    - -1
+    type: integer
+    x-enum-varnames:
+    - VoteUp
+    - VoteNone
+    - VoteDown
   httputil.ApiError:
     properties:
       error:
@@ -87,55 +136,16 @@ definitions:
       upvotes:
         type: integer
     type: object
-  models.AnswerResponse:
-    properties:
-      can_i_delete:
-        type: boolean
-      content:
-        type: string
-      created_at:
-        type: string
-      downvotes:
-        type: integer
-      i_voted:
-        type: integer
-      id:
-        type: integer
-      parent:
-        type: integer
-      question:
-        type: integer
-      replies:
-        items:
-          $ref: '#/definitions/models.AnswerResponse'
-        type: array
-      updated_at:
-        type: string
-      upvotes:
-        type: integer
-      user:
-        type: string
-      user_avatar_url:
-        type: string
-    type: object
   models.AnswerState:
     enum:
     - 0
     - 1
     - 2
-    format: int32
     type: integer
     x-enum-varnames:
     - AnswerStateVisible
     - AnswerStateDeletedByUser
     - AnswerStateDeletedByAdmin
-  models.ImageResponse:
-    properties:
-      id:
-        type: string
-      url:
-        type: string
-    type: object
   models.PostAnswerRequest:
     properties:
       anonymous:
@@ -167,38 +177,6 @@ definitions:
       updated_at:
         type: string
     type: object
-  models.QuestionResponse:
-    properties:
-      answers:
-        items:
-          $ref: '#/definitions/models.AnswerResponse'
-        type: array
-      created_at:
-        type: string
-      document:
-        type: string
-      end:
-        type: integer
-      id:
-        type: integer
-      start:
-        type: integer
-      updated_at:
-        type: string
-    type: object
-  models.VoteResponse:
-    properties:
-      answer:
-        type: integer
-      createdAt:
-        type: string
-      updatedAt:
-        type: string
-      user:
-        type: string
-      vote:
-        type: integer
-    type: object
 info:
   contact:
     email: gabriele.genovese2@studio.unibo.it
@@ -226,7 +204,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.VoteResponse'
+            $ref: '#/definitions/api.Vote'
         "400":
           description: Bad Request
           schema:
@@ -250,7 +228,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.AnswerResponse'
+            $ref: '#/definitions/api.Answer'
         "400":
           description: Bad Request
           schema:
@@ -316,7 +294,7 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/github_com_cartabinaria_polleg_models.AnswerResponse'
+            $ref: '#/definitions/api.Answer'
       summary: Get answer replies
       tags:
       - answer
@@ -384,7 +362,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.ImageResponse'
+            $ref: '#/definitions/api.Image'
         "400":
           description: Bad Request
           schema:
@@ -428,7 +406,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/models.QuestionResponse'
+              $ref: '#/definitions/api.Question'
             type: array
         "400":
           description: Bad Request
