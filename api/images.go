@@ -2,7 +2,6 @@ package api
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"io"
 	"log/slog"
@@ -12,7 +11,6 @@ import (
 
 	"github.com/cartabinaria/auth/pkg/httputil"
 	"github.com/cartabinaria/auth/pkg/middleware"
-	"github.com/cartabinaria/polleg/models"
 	"github.com/cartabinaria/polleg/util"
 	"github.com/google/uuid"
 	"github.com/kataras/muxie"
@@ -34,6 +32,11 @@ const (
 	MAX_TOTAL_SIZE = 200 * 1024 * 1024 // 200 MB per user
 	MAX_NUMBER     = 100               // 100 images per user
 )
+
+type Image struct {
+	ID  string `json:"id"`
+	URL string `json:"url"`
+}
 
 // checkFileType reads the first few bytes of a file and compares them with known signatures.
 // As it takes a reader as input, the caller should ensure to reset the reader's position if needed (e.g., using Seek).
@@ -91,7 +94,7 @@ func GetImageHandler(imagesPath string) http.HandlerFunc {
 // @Accept			multipart/form-data
 // @Param			image	formData	file	true	"Image to upload"
 // @Produce		json
-// @Success		200	{object}	models.ImageResponse
+// @Success		200	{object}	Image
 // @Failure		400	{object}	httputil.ApiError
 // @Router			/images [post]
 func PostImageHandler(imagesPath string) http.HandlerFunc {
@@ -221,8 +224,7 @@ func PostImageHandler(imagesPath string) http.HandlerFunc {
 			return
 		}
 
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(models.ImageResponse{
+		httputil.WriteData(w, http.StatusOK, Image{
 			ID:  uuid.String(),
 			URL: fullPath,
 		})
