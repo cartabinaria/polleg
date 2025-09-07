@@ -100,11 +100,37 @@ definitions:
     - 1
     - 0
     - -1
+    format: int32
     type: integer
     x-enum-varnames:
     - VoteUp
     - VoteNone
     - VoteDown
+  api_proposal.DocumentProposal:
+    properties:
+      id:
+        type: string
+      questions:
+        items:
+          $ref: '#/definitions/api_proposal.Proposal'
+        type: array
+    type: object
+  api_proposal.Proposal:
+    properties:
+      created_at:
+        type: string
+      document:
+        type: string
+      end:
+        type: integer
+      id:
+        description: taken from from gorm.Model, so we can json strigify properly
+        type: integer
+      start:
+        type: integer
+      updated_at:
+        type: string
+    type: object
   httputil.ApiError:
     properties:
       error:
@@ -141,6 +167,7 @@ definitions:
     - 0
     - 1
     - 2
+    format: int32
     type: integer
     x-enum-varnames:
     - AnswerStateVisible
@@ -370,6 +397,174 @@ paths:
       summary: Insert a new image
       tags:
       - image
+  /images/{id}:
+    get:
+      description: Given an image ID, return the image
+      parameters:
+      - description: Image id
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: file
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/httputil.ApiError'
+      summary: Get an image
+      tags:
+      - image
+  /proposals:
+    get:
+      description: Get all proposals
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/api_proposal.DocumentProposal'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/httputil.ApiError'
+      summary: Get all proposals
+      tags:
+      - proposal
+    post:
+      description: Insert a new proposal for a document
+      parameters:
+      - description: Proposal data to insert
+        in: body
+        name: proposalReq
+        required: true
+        schema:
+          $ref: '#/definitions/api_proposal.DocumentProposal'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api_proposal.DocumentProposal'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/httputil.ApiError'
+      summary: Insert a new proposal
+      tags:
+      - proposal
+  /proposals/{id}:
+    delete:
+      description: Given a proposal ID, delete the proposal
+      parameters:
+      - description: Proposal id
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/httputil.ApiError'
+      summary: Delete a proposal
+      tags:
+      - proposal
+    get:
+      description: Get a proposal given its ID
+      parameters:
+      - description: Proposal id
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api_proposal.Proposal'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/httputil.ApiError'
+      summary: Get proposal by id
+      tags:
+      - proposal
+  /proposals/{id}/approve:
+    post:
+      description: Approve a proposal given its id
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Question'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/httputil.ApiError'
+      summary: Approve a proposal
+      tags:
+      - answer
+  /proposals/document/{id}:
+    delete:
+      description: Given a document ID, delete all its proposals
+      parameters:
+      - description: Document id
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/httputil.ApiError'
+      summary: Delete all proposals for a document
+      tags:
+      - proposal
+    get:
+      description: Get all proposals for a document, given its ID
+      parameters:
+      - description: Document id
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api_proposal.Proposal'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/httputil.ApiError'
+      summary: Get proposals by document id
+      tags:
+      - proposal
   /questions/{id}:
     delete:
       description: Given a question ID, delete the question

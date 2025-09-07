@@ -107,9 +107,16 @@ func main() {
 	mux.Handle("/images", authChain.ForFunc(api.PostImageHandler(config.ImagesPath)))
 
 	// proposal managers
-	mux.Handle("/proposals", authChain.ForFunc(proposal.ProposalHandler))
-	mux.Handle("/proposals/:id", authChain.ForFunc(proposal.ProposalByIdHandler))
-	mux.Handle("/proposals/document/:id", authChain.ForFunc(proposal.ProposalByDocumentHandler))
+	mux.Handle("/proposals", muxie.Methods().
+		Handle("POST", authChain.ForFunc(proposal.PostProposalHandler)).
+		Handle("GET", authChain.ForFunc(proposal.GetAllProposalsHandler)))
+	mux.Handle("/proposals/:id/approve", authChain.ForFunc(proposal.ApproveProposalHandler))
+	mux.Handle("/proposals/:id", muxie.Methods().
+		Handle("DELETE", authChain.ForFunc(proposal.DeleteProposalByIdHandler)).
+		Handle("GET", authChain.ForFunc(proposal.GetProposalByIdHandler)))
+	mux.Handle("/proposals/document/:id", muxie.Methods().
+		Handle("GET", authChain.ForFunc(proposal.GetProposalByDocumentHandler)).
+		Handle("DELETE", authChain.ForFunc(proposal.DeleteProposalByDocumentHandler)))
 
 	// start garbage collector
 	go util.GarbageCollector(config.ImagesPath)

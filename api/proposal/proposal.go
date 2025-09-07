@@ -3,10 +3,17 @@ package proposal
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 
 	"github.com/cartabinaria/auth/pkg/httputil"
+	"github.com/cartabinaria/auth/pkg/middleware"
 	"github.com/cartabinaria/polleg/api"
+	"github.com/cartabinaria/polleg/models"
 	"github.com/cartabinaria/polleg/util"
+	"github.com/kataras/muxie"
+	"golang.org/x/exp/slog"
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type DocumentProposal struct {
@@ -14,19 +21,25 @@ type DocumentProposal struct {
 	Questions []Proposal `json:"questions"`
 }
 
-func ProposalHandler(res http.ResponseWriter, req *http.Request) {
-	switch req.Method {
-	case http.MethodPost:
-		postProposal(res, req)
-	case http.MethodGet:
-		getAllProposalHandler(res, req)
-	default:
+// @Summary		Insert a new proposal
+// @Description	Insert a new proposal for a document
+// @Tags			proposal
+// @Param			proposalReq	body	DocumentProposal	true	"Proposal data to insert"
+// @Produce		json
+// @Success		200	{object}	DocumentProposal
+// @Failure		400	{object}	httputil.ApiError
+// @Router			/proposals [post]
+func PostProposalHandler(res http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodPost {
 		httputil.WriteError(res, http.StatusMethodNotAllowed, "invalid method")
+		return
 	}
-}
 
-// Insert a question proposal (copy pasted from document.go)
-func postProposal(res http.ResponseWriter, req *http.Request) {
+	if !middleware.GetAdmin(req) {
+		httputil.WriteError(res, http.StatusForbidden, "you are not admin")
+		return
+	}
+
 	db := util.GetDb()
 
 	// decode data
@@ -67,10 +80,27 @@ func groupByProperty[T any, K comparable](items []T, getProperty func(T) K) map[
 	return grouped
 }
 
-func getAllProposalHandler(res http.ResponseWriter, req *http.Request) {
+// @Summary		Get all proposals
+// @Description	Get all proposals
+// @Tags			proposal
+// @Produce		json
+// @Success		200	{object}	[]DocumentProposal
+// @Failure		400	{object}	httputil.ApiError
+// @Router			/proposals [get]
+func GetAllProposalsHandler(res http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodGet {
+		httputil.WriteError(res, http.StatusMethodNotAllowed, "invalid method")
+		return
+	}
+
+	if !middleware.GetAdmin(req) {
+		httputil.WriteError(res, http.StatusForbidden, "you are not admin")
+		return
+	}
+
 	db := util.GetDb()
 	var questions []Proposal
-	if err := db.Where(Proposal{}).Find(&questions).Error; err != nil {
+	if err := db.Find(&questions).Error; err != nil {
 		httputil.WriteError(res, http.StatusInternalServerError, "db query failed")
 		return
 	}
@@ -108,4 +138,62 @@ func getAllProposalHandler(res http.ResponseWriter, req *http.Request) {
 	}
 
 	httputil.WriteData(res, http.StatusOK, docProps)
+}
+
+// @Summary		Approve a proposal
+// @Description	Approve a proposal given its id
+// @Tags			answer
+// @Produce		json
+// @Success		200	{object}	models.Question
+// @Failure		400	{object}	httputil.ApiError
+// @Router			/proposals/{id}/approve [post]
+func ApproveProposalHandler(res http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodPost {
+		httputil.WriteError(res, http.StatusMethodNotAllowed, "invalid method")
+		return
+	}
+
+	if !middleware.GetAdmin(req) {
+		httputil.WriteError(res, http.StatusForbidden, "you are not admin")
+		return
+	}
+
+	rawID := muxie.GetParam(res, "id")
+	proposalID, err := strconv.Atoi(rawID)
+	if err != nil {
+		httputil.WriteError(res, http.StatusBadRequest, "invalid id")
+		return
+	}
+
+	db := util.GetDb()
+	var proposal Proposal
+	var question models.Question
+
+	err = db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Clauses(clause.Returning{}).Delete(&proposal, proposalID).Error; err != nil {
+			slog.Error("error while deleting proposal", "proposal", proposal, "err", err)
+			return err
+		}
+
+		// Create question
+		question = models.Question{
+			Document: proposal.Document,
+			Start:    proposal.Start,
+			End:      proposal.End,
+		}
+
+		if err := tx.Create(&question).Error; err != nil {
+			slog.Error("error while creating the question", "question", question, "err", err)
+			return err
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		httputil.WriteError(res, http.StatusBadRequest, "could not approve proposal")
+		return
+	}
+
+	httputil.WriteData(res, http.StatusOK, question)
 }
