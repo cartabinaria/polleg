@@ -48,7 +48,7 @@ func createVotesSubquery(db *gorm.DB) *gorm.DB {
 func applyVoteJoins(query *gorm.DB, votesSubquery *gorm.DB) *gorm.DB {
 	return query.
 		Select("answers.*, vote_counts.upvotes, vote_counts.downvotes").
-		Joins("LEFT JOIN (?) vote_counts ON vote_counts.answer = answers.id", votesSubquery)
+		Joins("LEFT JOIN (?) vote_counts ON vote_counts.answer_id = answers.id", votesSubquery)
 }
 
 // createPreloadFunction creates the preload function with vote joins
