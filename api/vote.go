@@ -103,7 +103,7 @@ func PostVote(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	var ans Answer
+	var ans models.Answer
 	if err = db.First(&ans, ansID).Error; err != nil {
 		httputil.WriteError(res, http.StatusBadRequest, "the referenced answer does not exist")
 		return
