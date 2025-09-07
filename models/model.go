@@ -20,7 +20,7 @@ type Answer struct {
 	Upvotes   uint32      `json:"upvotes" gorm:"->"`
 	Downvotes uint32      `json:"downvotes" gorm:"->"`
 	Replies   []Answer    `json:"replies" gorm:"foreignKey:Parent;references:ID"`
-	Votes     []Vote      `json:"-" gorm:"foreignKey:Answer;references:ID"`
+	Votes     []Vote      `json:"-" gorm:"foreignKey:AnswerID;references:ID"`
 	Anonymous bool        `json:"anonymous"`
 	State     AnswerState `json:"state"`
 }
@@ -60,7 +60,7 @@ func (q *Question) AfterDelete(tx *gorm.DB) (err error) {
 }
 
 type Vote struct {
-	AnswerID uint `json:"answer" gorm:"primaryKey;foreignKey:Answer;references:ID"`
+	AnswerID uint `json:"answer" gorm:"primaryKey"`
 	UserId   uint `json:"-" gorm:"primaryKey"`
 	Vote     int8 `json:"vote"`
 
