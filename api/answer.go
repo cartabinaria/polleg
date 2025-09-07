@@ -25,14 +25,14 @@ type Answer struct {
 	Question uint  `json:"question"`
 	Parent   *uint `json:"parent"`
 
-	User          string           `json:"user"`
-	UserAvatarURL string           `json:"user_avatar_url"`
-	Content       string           `json:"content"`
-	Upvotes       uint32           `json:"upvotes"`
-	Downvotes     uint32           `json:"downvotes"`
-	Replies       []Answer 				 `json:"replies"`
-	CanIDelete    bool             `json:"can_i_delete"`
-	IVoted        VoteValue        `json:"i_voted"`
+	User          string    `json:"user"`
+	UserAvatarURL string    `json:"user_avatar_url"`
+	Content       string    `json:"content"`
+	Upvotes       uint32    `json:"upvotes"`
+	Downvotes     uint32    `json:"downvotes"`
+	Replies       []Answer  `json:"replies"`
+	CanIDelete    bool      `json:"can_i_delete"`
+	IVoted        VoteValue `json:"i_voted"`
 }
 
 const RepliesDepth = 2
@@ -224,19 +224,19 @@ func PostAnswerHandler(res http.ResponseWriter, req *http.Request) {
 	}
 
 	httputil.WriteData(res, http.StatusOK, Answer{
-			ID:            answer.ID,
-			CreatedAt:     answer.CreatedAt,
-			UpdatedAt:     answer.UpdatedAt,
-			Question:      answer.Question,
-			Parent:        answer.Parent,
-			User:          username,
-			UserAvatarURL: avatar,
-			Content:       version.Content,
-			Upvotes:       answer.Upvotes,
-			Downvotes:     answer.Downvotes,
-			CanIDelete:    true,
-			IVoted:        0,
-		})
+		ID:            answer.ID,
+		CreatedAt:     answer.CreatedAt,
+		UpdatedAt:     answer.UpdatedAt,
+		Question:      answer.Question,
+		Parent:        answer.Parent,
+		User:          username,
+		UserAvatarURL: avatar,
+		Content:       version.Content,
+		Upvotes:       answer.Upvotes,
+		Downvotes:     answer.Downvotes,
+		CanIDelete:    true,
+		IVoted:        0,
+	})
 }
 
 // @Summary		Delete an answer

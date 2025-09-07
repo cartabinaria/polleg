@@ -1,16 +1,16 @@
 package api
 
 import (
-	"net/http"
-	"strconv"
-	"strings"
-	"time"
 	"github.com/cartabinaria/auth/pkg/httputil"
 	"github.com/cartabinaria/auth/pkg/middleware"
 	"github.com/cartabinaria/polleg/models"
 	"github.com/cartabinaria/polleg/util"
 	"github.com/kataras/muxie"
 	"golang.org/x/exp/slog"
+	"net/http"
+	"strconv"
+	"strings"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -21,9 +21,9 @@ type Question struct {
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `json:"-"`
 
-	Document string           `json:"document"`
-	Start    uint32           `json:"start"`
-	End      uint32           `json:"end"`
+	Document string   `json:"document"`
+	Start    uint32   `json:"start"`
+	End      uint32   `json:"end"`
 	Answers  []Answer `json:"answers"`
 }
 
