@@ -65,7 +65,7 @@ func ConvertAnswerToAPI(answer models.Answer, isAdmin bool, requesterID int) (*A
 		return nil, err
 	}
 
-	var latestVersion models.AnswerVersions
+	var latestVersion models.AnswerVersion
 	if err := db.Where("answer = ?", answer.ID).Last(&latestVersion).Error; err != nil {
 		return nil, err
 	}
@@ -178,7 +178,7 @@ func PostAnswerHandler(res http.ResponseWriter, req *http.Request) {
 		Anonymous: ans.Anonymous,
 	}
 
-	var version models.AnswerVersions
+	var version models.AnswerVersion
 
 	err = db.Transaction(func(tx *gorm.DB) error {
 		// Create answer
@@ -188,9 +188,9 @@ func PostAnswerHandler(res http.ResponseWriter, req *http.Request) {
 		}
 
 		// Create answer version
-		version := models.AnswerVersions{
-			Answer:  answer.ID,
-			Content: ans.Content,
+		version := models.AnswerVersion{
+			AnswerID: answer.ID,
+			Content:  ans.Content,
 		}
 
 		if err := tx.Create(&version).Error; err != nil {
@@ -345,9 +345,9 @@ func UpdateAnswerHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	version := models.AnswerVersions{
-		Answer:  answer.ID,
-		Content: body.Content,
+	version := models.AnswerVersion{
+		AnswerID: answer.ID,
+		Content:  body.Content,
 	}
 
 	if err := db.Create(&version).Error; err != nil {

@@ -25,12 +25,12 @@ type Answer struct {
 	State     AnswerState `json:"state"`
 }
 
-type AnswerVersions struct {
+type AnswerVersion struct {
 	ID        uint      `json:"id" gorm:"primarykey"`
 	CreatedAt time.Time `json:"created_at"`
 
-	Answer  uint   `gorm:"index; not null;"`
-	Content string `json:"content"`
+	AnswerID uint   `gorm:"foreignKey:Answer;references:ID;index;not null"`
+	Content  string `json:"content"`
 }
 
 type AnswerState uint8
