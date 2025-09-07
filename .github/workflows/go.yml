@@ -24,7 +24,7 @@ jobs:
         run: go build -v ./...
 
       - name: Format
-        run: test -z $(gofmt -l .)
+        run: test -z "$(gofmt -l .)"
 
       - name: Test
         run: go test -v ./...
