@@ -53,14 +53,14 @@ func GetUserVote(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	var vote Vote
-	if err = db.First(&vote, "answer = ? and \"user\" = ?", ansID, user.ID).Error; err != nil {
+	var vote models.Vote
+	if err = db.Where("answer_id = ? and user_id = ?", ansID, user.ID).First(&vote).Error; err != nil {
 		httputil.WriteError(res, http.StatusBadRequest, "the referenced vote does not exist")
 		return
 	}
 
 	httputil.WriteData(res, http.StatusOK, Vote{
-		Answer:    vote.Answer,
+		Answer:    vote.AnswerID,
 		User:      user.Username,
 		Vote:      int8(vote.Vote),
 		CreatedAt: vote.CreatedAt,
@@ -118,7 +118,7 @@ func PostVote(res http.ResponseWriter, req *http.Request) {
 	case VoteUp, VoteDown:
 		// If a vote already exists, and
 		err := db.Clauses(clause.OnConflict{
-			Columns:   []clause.Column{{Name: "answer"}, {Name: "user_id"}},
+			Columns:   []clause.Column{{Name: "answer_id"}, {Name: "user_id"}},
 			DoUpdates: clause.AssignmentColumns([]string{"vote"}),
 		}).Create(&vote).Error
 		if err != nil {
@@ -127,7 +127,7 @@ func PostVote(res http.ResponseWriter, req *http.Request) {
 		}
 
 	case VoteNone:
-		result := db.Where("answer = ? AND user_id = ?", ans.ID, user.ID).Delete(&models.Vote{})
+		result := db.Where("answer_id = ? AND user_id = ?", ans.ID, user.ID).Delete(&models.Vote{})
 		if result.Error != nil {
 			httputil.WriteError(res, http.StatusInternalServerError, "could not delete the previous vote")
 			return
