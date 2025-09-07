@@ -420,7 +420,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/api_proposal.DocumentProposal"
+                            "$ref": "#/definitions/api_proposal.Proposal"
                         }
                     },
                     "400": {

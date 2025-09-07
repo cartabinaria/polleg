@@ -100,7 +100,7 @@ func GetAllProposalsHandler(res http.ResponseWriter, req *http.Request) {
 
 	db := util.GetDb()
 	var questions []Proposal
-	if err := db.Where(Proposal{}).Find(&questions).Error; err != nil {
+	if err := db.Find(&questions).Error; err != nil {
 		httputil.WriteError(res, http.StatusInternalServerError, "db query failed")
 		return
 	}
@@ -171,7 +171,6 @@ func ApproveProposalHandler(res http.ResponseWriter, req *http.Request) {
 
 	err = db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Clauses(clause.Returning{}).Delete(&proposal, proposalID).Error; err != nil {
-			tx.Rollback()
 			slog.Error("error while deleting proposal", "proposal", proposal, "err", err)
 			return err
 		}

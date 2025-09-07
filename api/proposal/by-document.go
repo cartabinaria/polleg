@@ -6,7 +6,6 @@ import (
 
 	"github.com/cartabinaria/auth/pkg/httputil"
 	"github.com/cartabinaria/auth/pkg/middleware"
-	"github.com/cartabinaria/polleg/models"
 	"github.com/cartabinaria/polleg/util"
 	"github.com/kataras/muxie"
 	"golang.org/x/exp/slog"
@@ -17,7 +16,7 @@ import (
 // @Tags			proposal
 // @Param			id	path	string	true	"Document id"
 // @Produce		json
-// @Success		200	{object}	DocumentProposal
+// @Success		200	{object}	Proposal
 // @Failure		400	{object}	httputil.ApiError
 // @Router			/proposals/document/{id} [get]
 func GetProposalByDocumentHandler(res http.ResponseWriter, req *http.Request) {
@@ -30,7 +29,7 @@ func GetProposalByDocumentHandler(res http.ResponseWriter, req *http.Request) {
 	docID := muxie.GetParam(res, "id")
 
 	var questions []Proposal
-	if err := db.Where(models.Question{Document: docID}).Find(&questions).Error; err != nil {
+	if err := db.Where("document = ?", docID).Find(&questions).Error; err != nil {
 		slog.Error("db query failed", "err", err)
 		httputil.WriteError(res, http.StatusInternalServerError, "db query failed")
 		return
