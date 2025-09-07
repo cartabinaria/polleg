@@ -30,7 +30,7 @@ type Answer struct {
 	Content       string    `json:"content"`
 	Upvotes       uint32    `json:"upvotes"`
 	Downvotes     uint32    `json:"downvotes"`
-	Replies       []Answer  `json:"replies;foreignKey:Parent;references:ID"`
+	Replies       []Answer  `json:"replies"`
 	CanIDelete    bool      `json:"can_i_delete"`
 	IVoted        VoteValue `json:"i_voted"`
 }
