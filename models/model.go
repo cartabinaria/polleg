@@ -60,9 +60,9 @@ func (q *Question) AfterDelete(tx *gorm.DB) (err error) {
 }
 
 type Vote struct {
-	Answer uint `json:"answer" gorm:"primaryKey"`
-	UserId uint `json:"-" gorm:"primaryKey"`
-	Vote   int8 `json:"vote"`
+	AnswerID uint `json:"answer" gorm:"primaryKey;foreignKey:Answer;references:ID"`
+	UserId   uint `json:"-" gorm:"primaryKey"`
+	Vote     int8 `json:"vote"`
 
 	// taken from from gorm.Model
 	CreatedAt time.Time

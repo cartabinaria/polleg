@@ -110,9 +110,9 @@ func PostVote(res http.ResponseWriter, req *http.Request) {
 	}
 
 	vote := models.Vote{
-		Answer: ans.ID,
-		UserId: user.ID,
-		Vote:   int8(p.Vote),
+		AnswerID: ans.ID,
+		UserId:   user.ID,
+		Vote:     int8(p.Vote),
 	}
 	switch p.Vote {
 	case VoteUp, VoteDown:
@@ -143,7 +143,7 @@ func PostVote(res http.ResponseWriter, req *http.Request) {
 	}
 
 	httputil.WriteData(res, http.StatusOK, Vote{
-		Answer:    vote.Answer,
+		Answer:    vote.AnswerID,
 		User:      user.Username,
 		Vote:      int8(vote.Vote),
 		CreatedAt: vote.CreatedAt,

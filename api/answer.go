@@ -66,7 +66,7 @@ func ConvertAnswerToAPI(answer models.Answer, isAdmin bool, requesterID int) (*A
 	}
 
 	var latestVersion models.AnswerVersion
-	if err := db.Where("answer = ?", answer.ID).Last(&latestVersion).Error; err != nil {
+	if err := db.Where("answer_id = ?", answer.ID).Last(&latestVersion).Error; err != nil {
 		return nil, err
 	}
 
@@ -88,7 +88,7 @@ func ConvertAnswerToAPI(answer models.Answer, isAdmin bool, requesterID int) (*A
 
 	var voteValue VoteValue
 	var vote models.Vote
-	err = db.Where("answer = ? AND user_id = ?", answer.ID, requesterID).First(&vote).Error
+	err = db.Where("answer_id = ? AND user_id = ?", answer.ID, requesterID).First(&vote).Error
 	if err != nil {
 		if err != gorm.ErrRecordNotFound {
 			return nil, err
