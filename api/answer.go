@@ -40,8 +40,8 @@ const RepliesDepth = 2
 // createVotesSubquery creates a reusable subquery for vote counting
 func createVotesSubquery(db *gorm.DB) *gorm.DB {
 	return db.Table("votes").
-		Select("votes.answer, COUNT(CASE votes.vote WHEN ? THEN 1 ELSE NULL END) as upvotes, COUNT(CASE votes.vote WHEN ? THEN 1 ELSE NULL END) as downvotes", VoteUp, VoteDown).
-		Group("votes.answer")
+		Select("votes.answer_id, COUNT(CASE votes.vote WHEN ? THEN 1 ELSE NULL END) as upvotes, COUNT(CASE votes.vote WHEN ? THEN 1 ELSE NULL END) as downvotes", VoteUp, VoteDown).
+		Group("votes.answer_id")
 }
 
 // applyVoteJoins applies the votes subquery and selects answers with vote counts
