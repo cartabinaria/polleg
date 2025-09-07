@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/cartabinaria/auth/pkg/httputil"
 	"github.com/cartabinaria/auth/pkg/middleware"
@@ -15,6 +16,24 @@ import (
 	"golang.org/x/exp/slog"
 	"gorm.io/gorm"
 )
+
+type Answer struct {
+	ID        uint      `json:"id"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+
+	Question uint  `json:"question"`
+	Parent   *uint `json:"parent"`
+
+	User          string    `json:"user"`
+	UserAvatarURL string    `json:"user_avatar_url"`
+	Content       string    `json:"content"`
+	Upvotes       uint32    `json:"upvotes"`
+	Downvotes     uint32    `json:"downvotes"`
+	Replies       []Answer  `json:"replies"`
+	CanIDelete    bool      `json:"can_i_delete"`
+	IVoted        VoteValue `json:"i_voted"`
+}
 
 const RepliesDepth = 2
 
@@ -39,7 +58,7 @@ func createPreloadFunction(votesSubquery *gorm.DB) func(db *gorm.DB) *gorm.DB {
 	}
 }
 
-func ConvertAnswerToAPI(answer models.Answer, isAdmin bool, requesterID int) (*models.AnswerResponse, error) {
+func ConvertAnswerToAPI(answer models.Answer, isAdmin bool, requesterID int) (*Answer, error) {
 	db := util.GetDb()
 	usr, err := util.GetUserByID(db, answer.UserId)
 	if err != nil {
@@ -67,7 +86,7 @@ func ConvertAnswerToAPI(answer models.Answer, isAdmin bool, requesterID int) (*m
 		content = latestVersion.Content
 	}
 
-	var voteValue models.VoteValue
+	var voteValue VoteValue
 	var vote models.Vote
 	err = db.Where("answer = ? AND user_id = ?", answer.ID, requesterID).First(&vote).Error
 	if err != nil {
@@ -77,11 +96,11 @@ func ConvertAnswerToAPI(answer models.Answer, isAdmin bool, requesterID int) (*m
 			voteValue = VoteNone
 		}
 	} else {
-		voteValue = models.VoteValue(vote.Vote)
+		voteValue = VoteValue(vote.Vote)
 	}
 
 	// recursively convert replies
-	var replies []models.AnswerResponse
+	var replies []Answer
 	for _, reply := range answer.Replies {
 		reply, err := ConvertAnswerToAPI(reply, isAdmin, requesterID)
 		if err != nil {
@@ -90,7 +109,7 @@ func ConvertAnswerToAPI(answer models.Answer, isAdmin bool, requesterID int) (*m
 		replies = append(replies, *reply)
 	}
 
-	return &models.AnswerResponse{
+	return &Answer{
 		ID:            answer.ID,
 		CreatedAt:     answer.CreatedAt,
 		UpdatedAt:     answer.UpdatedAt,
@@ -113,7 +132,7 @@ func ConvertAnswerToAPI(answer models.Answer, isAdmin bool, requesterID int) (*m
 // @Tags			answer
 // @Param			answerReq	body	models.PostAnswerRequest	true	"Answer data to insert"
 // @Produce		json
-// @Success		200	{object}	models.AnswerResponse
+// @Success		200	{object}	Answer
 // @Failure		400	{object}	httputil.ApiError
 // @Router			/answers [post]
 func PostAnswerHandler(res http.ResponseWriter, req *http.Request) {
@@ -204,21 +223,20 @@ func PostAnswerHandler(res http.ResponseWriter, req *http.Request) {
 		username = user.Username
 	}
 
-	httputil.WriteData(res, http.StatusOK,
-		models.AnswerResponse{
-			ID:            answer.ID,
-			CreatedAt:     answer.CreatedAt,
-			UpdatedAt:     answer.UpdatedAt,
-			Question:      answer.Question,
-			Parent:        answer.Parent,
-			User:          username,
-			UserAvatarURL: avatar,
-			Content:       version.Content,
-			Upvotes:       answer.Upvotes,
-			Downvotes:     answer.Downvotes,
-			CanIDelete:    true,
-			IVoted:        0,
-		})
+	httputil.WriteData(res, http.StatusOK, Answer{
+		ID:            answer.ID,
+		CreatedAt:     answer.CreatedAt,
+		UpdatedAt:     answer.UpdatedAt,
+		Question:      answer.Question,
+		Parent:        answer.Parent,
+		User:          username,
+		UserAvatarURL: avatar,
+		Content:       version.Content,
+		Upvotes:       answer.Upvotes,
+		Downvotes:     answer.Downvotes,
+		CanIDelete:    true,
+		IVoted:        0,
+	})
 }
 
 // @Summary		Delete an answer
@@ -354,7 +372,7 @@ func UpdateAnswerHandler(res http.ResponseWriter, req *http.Request) {
 // @Param			id	path	string	true	"Answer id"
 // @Produce		json
 // @Success		200	{object}	nil
-// @Failure		400	{object}	models.AnswerResponse[]
+// @Failure		400	{object}	Answer[]
 // @Router			/answers/{id}/replies [get]
 func GetRepliesHandler(res http.ResponseWriter, req *http.Request) {
 	// Check method GET is used

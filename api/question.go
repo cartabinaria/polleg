@@ -1,24 +1,38 @@
 package api
 
 import (
-	"net/http"
-	"strconv"
-	"strings"
-
 	"github.com/cartabinaria/auth/pkg/httputil"
 	"github.com/cartabinaria/auth/pkg/middleware"
 	"github.com/cartabinaria/polleg/models"
 	"github.com/cartabinaria/polleg/util"
 	"github.com/kataras/muxie"
 	"golang.org/x/exp/slog"
+	"net/http"
+	"strconv"
+	"strings"
+	"time"
+
+	"gorm.io/gorm"
 )
+
+type Question struct {
+	ID        uint           `json:"id"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	DeletedAt gorm.DeletedAt `json:"-"`
+
+	Document string   `json:"document"`
+	Start    uint32   `json:"start"`
+	End      uint32   `json:"end"`
+	Answers  []Answer `json:"answers"`
+}
 
 // @Summary		Get all answers given a question
 // @Description	Given a question ID, return the question and all its answers
 // @Tags			question
 // @Param			id	path	string	true	"Answer id"
 // @Produce		json
-// @Success		200	{array}		models.QuestionResponse
+// @Success		200	{array}		Question
 // @Failure		400	{object}	httputil.ApiError
 // @Router			/questions/{id} [get]
 func GetQuestionHandler(res http.ResponseWriter, req *http.Request) {
@@ -72,7 +86,7 @@ func GetQuestionHandler(res http.ResponseWriter, req *http.Request) {
 	question.Answers = answers
 
 	// recursively convert answers
-	var responseAnswers []models.AnswerResponse
+	var responseAnswers []Answer
 	for _, ans := range question.Answers {
 		ans, err := ConvertAnswerToAPI(ans, isAdmin, requesterID)
 		if err != nil {
@@ -81,17 +95,15 @@ func GetQuestionHandler(res http.ResponseWriter, req *http.Request) {
 		responseAnswers = append(responseAnswers, *ans)
 	}
 
-	httputil.WriteData(res, http.StatusOK,
-		models.QuestionResponse{
-			ID:        question.ID,
-			CreatedAt: question.CreatedAt,
-			UpdatedAt: question.UpdatedAt,
-			Document:  question.Document,
-			Start:     question.Start,
-			End:       question.End,
-			Answers:   responseAnswers,
-		},
-	)
+	httputil.WriteData(res, http.StatusOK, Question{
+		ID:        question.ID,
+		CreatedAt: question.CreatedAt,
+		UpdatedAt: question.UpdatedAt,
+		Document:  question.Document,
+		Start:     question.Start,
+		End:       question.End,
+		Answers:   responseAnswers,
+	})
 }
 
 // @Summary		Delete a question
