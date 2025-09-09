@@ -89,8 +89,7 @@ func main() {
 	mux.Handle("/documents/:id", authOptionalChain.ForFunc(api.GetDocumentHandler))
 	mux.Handle("/questions/:id", muxie.Methods().
 		Handle("GET", authOptionalChain.ForFunc(api.GetQuestionHandler)).
-		Handle("DELETE", authChain.ForFunc(api.DelQuestionHandler)).
-		NoContent("OPTIONS"))
+		Handle("DELETE", authChain.ForFunc(api.DelQuestionHandler)))
 
 	mux.Handle("/images/:id", authOptionalChain.ForFunc(api.GetImageHandler(config.ImagesPath)))
 
@@ -105,8 +104,7 @@ func main() {
 	mux.Handle("/answers/:id", authChain.ForFunc(api.DelAnswerHandler))
 	mux.Handle("/answers/:id", muxie.Methods().
 		Handle("DELETE", authChain.ForFunc(api.DelAnswerHandler)).
-		Handle("PATCH", authChain.ForFunc(api.UpdateAnswerHandler)).
-		NoContent("OPTIONS"))
+		Handle("PATCH", authChain.ForFunc(api.UpdateAnswerHandler)))
 
 	// Images
 	mux.Handle("/images", authChain.ForFunc(api.PostImageHandler(config.ImagesPath)))
@@ -114,17 +112,14 @@ func main() {
 	// proposal managers
 	mux.Handle("/proposals", muxie.Methods().
 		Handle("POST", authChain.ForFunc(proposal.PostProposalHandler)).
-		Handle("GET", authChain.ForFunc(proposal.GetAllProposalsHandler)).
-		NoContent("OPTIONS"))
+		Handle("GET", authChain.ForFunc(proposal.GetAllProposalsHandler)))
 	mux.Handle("/proposals/:id/approve", authChain.ForFunc(proposal.ApproveProposalHandler))
 	mux.Handle("/proposals/:id", muxie.Methods().
 		Handle("DELETE", authChain.ForFunc(proposal.DeleteProposalByIdHandler)).
-		Handle("GET", authChain.ForFunc(proposal.GetProposalByIdHandler)).
-		NoContent("OPTIONS"))
+		Handle("GET", authChain.ForFunc(proposal.GetProposalByIdHandler)))
 	mux.Handle("/proposals/document/:id", muxie.Methods().
 		Handle("GET", authChain.ForFunc(proposal.GetProposalByDocumentHandler)).
-		Handle("DELETE", authChain.ForFunc(proposal.DeleteProposalByDocumentHandler)).
-		NoContent("OPTIONS"))
+		Handle("DELETE", authChain.ForFunc(proposal.DeleteProposalByDocumentHandler)))
 
 	// start garbage collector
 	go util.GarbageCollector(config.ImagesPath)
