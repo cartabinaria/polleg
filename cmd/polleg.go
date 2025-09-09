@@ -79,14 +79,18 @@ func main() {
 		slog.Error("failed to create authentication middleware", "err", err)
 		os.Exit(1)
 	}
-	authChain := muxie.Pre(util.NewLoggerMiddleware, httputil.NewCorsMiddleware(config.ClientURLs, true, mux), authMiddleware.Handler)
-	authOptionalChain := muxie.Pre(util.NewLoggerMiddleware, httputil.NewCorsMiddleware(config.ClientURLs, true, mux), authMiddleware.NonBlockingHandler)
+
+	mux.Use(httputil.NewCorsMiddleware(config.ClientURLs, true, mux))
+
+	authChain := muxie.Pre(util.NewLoggerMiddleware, authMiddleware.Handler)
+	authOptionalChain := muxie.Pre(util.NewLoggerMiddleware, authMiddleware.NonBlockingHandler)
 
 	// authentication-less read-only queries
 	mux.Handle("/documents/:id", authOptionalChain.ForFunc(api.GetDocumentHandler))
 	mux.Handle("/questions/:id", muxie.Methods().
 		Handle("GET", authOptionalChain.ForFunc(api.GetQuestionHandler)).
-		Handle("DELETE", authChain.ForFunc(api.DelQuestionHandler)))
+		Handle("DELETE", authChain.ForFunc(api.DelQuestionHandler)).
+		NoContent("OPTIONS"))
 
 	mux.Handle("/images/:id", authOptionalChain.ForFunc(api.GetImageHandler(config.ImagesPath)))
 
@@ -101,7 +105,8 @@ func main() {
 	mux.Handle("/answers/:id", authChain.ForFunc(api.DelAnswerHandler))
 	mux.Handle("/answers/:id", muxie.Methods().
 		Handle("DELETE", authChain.ForFunc(api.DelAnswerHandler)).
-		Handle("PATCH", authChain.ForFunc(api.UpdateAnswerHandler)))
+		Handle("PATCH", authChain.ForFunc(api.UpdateAnswerHandler)).
+		NoContent("OPTIONS"))
 
 	// Images
 	mux.Handle("/images", authChain.ForFunc(api.PostImageHandler(config.ImagesPath)))
@@ -109,14 +114,17 @@ func main() {
 	// proposal managers
 	mux.Handle("/proposals", muxie.Methods().
 		Handle("POST", authChain.ForFunc(proposal.PostProposalHandler)).
-		Handle("GET", authChain.ForFunc(proposal.GetAllProposalsHandler)))
+		Handle("GET", authChain.ForFunc(proposal.GetAllProposalsHandler)).
+		NoContent("OPTIONS"))
 	mux.Handle("/proposals/:id/approve", authChain.ForFunc(proposal.ApproveProposalHandler))
 	mux.Handle("/proposals/:id", muxie.Methods().
 		Handle("DELETE", authChain.ForFunc(proposal.DeleteProposalByIdHandler)).
-		Handle("GET", authChain.ForFunc(proposal.GetProposalByIdHandler)))
+		Handle("GET", authChain.ForFunc(proposal.GetProposalByIdHandler)).
+		NoContent("OPTIONS"))
 	mux.Handle("/proposals/document/:id", muxie.Methods().
 		Handle("GET", authChain.ForFunc(proposal.GetProposalByDocumentHandler)).
-		Handle("DELETE", authChain.ForFunc(proposal.DeleteProposalByDocumentHandler)))
+		Handle("DELETE", authChain.ForFunc(proposal.DeleteProposalByDocumentHandler)).
+		NoContent("OPTIONS"))
 
 	// start garbage collector
 	go util.GarbageCollector(config.ImagesPath)
