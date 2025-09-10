@@ -4,6 +4,7 @@ import (
 	"log/slog"
 	"net/http"
 	"slices"
+	"strconv"
 	"time"
 
 	"github.com/cartabinaria/auth/pkg/httputil"
@@ -38,6 +39,8 @@ func LogsHandler(w http.ResponseWriter, r *http.Request) {
 
 	db := util.GetDb()
 
+	var logs []Log
+
 	// Images
 	var images []models.Image
 	if err := db.Find(&images).Error; err != nil {
@@ -45,9 +48,27 @@ func LogsHandler(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteError(w, http.StatusBadRequest, "could not get logs")
 		return
 	}
+	logs = append(logs, imagesToLogs(images)...)
 
-	logs := imagesToLogs(images)
+	// Answers
+	var answers []models.Answer
+	if err := db.Find(&answers).Error; err != nil {
+		slog.With("err", err).Error("error while getting answers from DB")
+		httputil.WriteError(w, http.StatusBadRequest, "could not get logs")
+		return
+	}
+	logs = append(logs, answersToLogs(answers)...)
 
+	// Answers versions
+	var answerVersions []models.AnswerVersion
+	if err := db.Find(&answerVersions).Error; err != nil {
+		slog.With("err", err).Error("error while getting answer versions from DB")
+		httputil.WriteError(w, http.StatusBadRequest, "could not get logs")
+		return
+	}
+	logs = append(logs, answersVersionsToLogs(answerVersions, answers)...)
+
+	// Map user IDs to usernames and avatar URLs
 	var users []models.User
 	if err := db.Find(&users).Error; err != nil {
 		slog.With("err", err).Error("error while getting users from DB")
@@ -106,5 +127,63 @@ func imagesToLogs(images []models.Image) []Log {
 			})
 		}
 	}
+	return logs
+}
+
+func answersToLogs(answers []models.Answer) []Log {
+	logs := make([]Log, 0, len(answers))
+	for _, ans := range answers {
+		logs = append(logs, Log{
+			Timestamp: ans.CreatedAt,
+			Action:    "created",
+			ItemType:  "answer",
+			ItemID:    strconv.FormatUint(uint64(ans.ID), 10),
+
+			UserID:        ans.UserId,
+			Username:      "",
+			UserAvatarURL: "",
+		})
+
+		if ans.DeletedAt.Valid {
+			l := Log{
+				Timestamp: ans.DeletedAt.Time,
+				Action:    "deleted",
+				ItemType:  "answer",
+				ItemID:    strconv.FormatUint(uint64(ans.ID), 10),
+			}
+
+			if ans.State == models.AnswerStateDeletedByAdmin {
+				l.Username = "administrator"
+			} else {
+				l.UserID = ans.UserId
+			}
+
+			logs = append(logs, l)
+		}
+	}
+
+	return logs
+}
+
+func answersVersionsToLogs(answersVersions []models.AnswerVersion, answers []models.Answer) []Log {
+	logs := make([]Log, 0, len(answersVersions))
+	answerMap := make(map[uint]uint, len(answers))
+	for _, ans := range answers {
+		answerMap[ans.ID] = ans.UserId
+	}
+
+	for _, av := range answersVersions {
+		logs = append(logs, Log{
+			Timestamp: av.CreatedAt,
+			Action:    "modified",
+			ItemType:  "answer-content",
+			ItemID:    strconv.FormatUint(uint64(av.AnswerID), 10),
+
+			UserID:        answerMap[av.AnswerID],
+			Username:      "",
+			UserAvatarURL: "",
+		})
+	}
+
 	return logs
 }
