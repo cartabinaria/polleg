@@ -3,6 +3,7 @@ package api
 import (
 	"log/slog"
 	"net/http"
+	"slices"
 	"time"
 
 	"github.com/cartabinaria/auth/pkg/httputil"
@@ -69,6 +70,11 @@ func LogsHandler(w http.ResponseWriter, r *http.Request) {
 			logs[i].UserAvatarURL = util.GetPublicAvatarURL(logs[i].UserID)
 		}
 	}
+
+	// Sort logs by timestamp descending
+	slices.SortFunc(logs, func(a, b Log) int {
+		return b.Timestamp.Compare(a.Timestamp)
+	})
 
 	httputil.WriteData(w, http.StatusOK, logs)
 }
