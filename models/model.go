@@ -8,29 +8,29 @@ import (
 
 type Answer struct {
 	// taken from from gorm.Model, so we can json strigify properly
-	ID        uint           `json:"id" gorm:"primarykey"`
-	CreatedAt time.Time      `json:"created_at"`
-	UpdatedAt time.Time      `json:"updated_at"`
-	DeletedAt gorm.DeletedAt `json:"-" gorm:"index"`
+	ID        uint `gorm:"primarykey"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt gorm.DeletedAt `gorm:"index"`
 
-	Question uint  `json:"question" gorm:"foreignKey:Question;references:ID"`
-	Parent   *uint `json:"parent"`
+	Question uint `gorm:"foreignKey:Question;references:ID"`
+	Parent   *uint
 
-	UserId    uint        `json:"-"`
-	Upvotes   uint32      `json:"upvotes" gorm:"->"`
-	Downvotes uint32      `json:"downvotes" gorm:"->"`
-	Replies   []Answer    `json:"replies" gorm:"foreignKey:Parent;references:ID"`
-	Votes     []Vote      `json:"-" gorm:"foreignKey:AnswerID;references:ID"`
-	Anonymous bool        `json:"anonymous"`
-	State     AnswerState `json:"state"`
+	UserId    uint
+	Upvotes   uint32   `gorm:"->"`
+	Downvotes uint32   `gorm:"->"`
+	Replies   []Answer `gorm:"foreignKey:Parent;references:ID"`
+	Votes     []Vote   `gorm:"foreignKey:AnswerID;references:ID"`
+	Anonymous bool
+	State     AnswerState
 }
 
 type AnswerVersion struct {
-	ID        uint      `json:"id" gorm:"primarykey"`
-	CreatedAt time.Time `json:"created_at"`
+	ID        uint `gorm:"primarykey"`
+	CreatedAt time.Time
 
-	AnswerID uint   `gorm:"foreignKey:Answer;references:ID;index;not null"`
-	Content  string `json:"content"`
+	AnswerID uint `gorm:"foreignKey:Answer;references:ID;index;not null"`
+	Content  string
 }
 
 type AnswerState uint8
@@ -62,9 +62,9 @@ func (q *Question) AfterDelete(tx *gorm.DB) (err error) {
 }
 
 type Vote struct {
-	AnswerID uint `json:"answer" gorm:"primaryKey"`
-	UserId   uint `json:"-" gorm:"primaryKey"`
-	Vote     int8 `json:"vote"`
+	AnswerID uint `gorm:"primaryKey"`
+	UserId   uint `gorm:"primaryKey"`
+	Vote     int8
 
 	// taken from from gorm.Model
 	CreatedAt time.Time
@@ -72,34 +72,34 @@ type Vote struct {
 }
 
 type User struct {
-	ID       uint   `json:"-" gorm:"primarykey"`
-	Username string `json:"username"`
-	Alias    string `json:"alias"`
+	ID       uint `gorm:"primarykey"`
+	Username string
+	Alias    string
 
-	CreatedAt time.Time      `json:"created_at"`
-	UpdatedAt time.Time      `json:"updated_at"`
-	DeletedAt gorm.DeletedAt `json:"-" gorm:"index"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt gorm.DeletedAt `gorm:"index"`
 
-	Questions []Question `json:"-" gorm:"foreignKey:UserID;references:ID"`
-	Proposals []Proposal `json:"-" gorm:"foreignKey:UserID;references:ID"`
+	Questions []Question `gorm:"foreignKey:UserID;references:ID"`
+	Proposals []Proposal `gorm:"foreignKey:UserID;references:ID"`
 }
 
 type PostAnswerRequest struct {
-	Question  uint   `json:"question"`
-	Parent    *uint  `json:"parent"`
-	Content   string `json:"content"`
-	Anonymous bool   `json:"anonymous"`
+	Question  uint
+	Parent    *uint
+	Content   string
+	Anonymous bool
 }
 
 type UpdateAnswerRequest struct {
-	Content string `json:"content"`
+	Content string
 }
 
 type Image struct {
 	ID        string `gorm:"primarykey"`
 	CreatedAt time.Time
 	UpdatedAt time.Time
-	DeletedAt gorm.DeletedAt `json:"-"`
+	DeletedAt gorm.DeletedAt
 
 	UserID uint `gorm:"index; not null; foreignKey:User; references:ID"`
 	Size   uint `gorm:"not null"`

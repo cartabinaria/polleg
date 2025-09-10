@@ -195,5 +195,13 @@ func ApproveProposalHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	httputil.WriteData(res, http.StatusOK, question)
+	httputil.WriteData(res, http.StatusOK, api.Question{
+		ID:        question.ID,
+		CreatedAt: question.CreatedAt,
+		UpdatedAt: question.UpdatedAt,
+		Document:  question.Document,
+		Start:     question.Start,
+		End:       question.End,
+		Answers:   []api.Answer{},
+	})
 }
