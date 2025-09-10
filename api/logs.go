@@ -74,12 +74,12 @@ func LogsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func imagesToLogs(images []models.Image) []Log {
-	logs := make([]Log, len(images))
+	logs := make([]Log, 0, len(images))
 	for _, img := range images {
 		logs = append(logs, Log{
 			Timestamp: img.CreatedAt,
-			Action:    "Created",
-			ItemType:  "Image",
+			Action:    "created",
+			ItemType:  "image",
 			ItemID:    img.ID,
 
 			UserID:        img.UserID,
@@ -90,8 +90,8 @@ func imagesToLogs(images []models.Image) []Log {
 		if img.DeletedAt.Valid {
 			logs = append(logs, Log{
 				Timestamp: img.DeletedAt.Time,
-				Action:    "Deleted",
-				ItemType:  "Image",
+				Action:    "deleted",
+				ItemType:  "image",
 				ItemID:    img.ID,
 
 				UserID:        SYSTEM_USER_ID,
