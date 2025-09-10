@@ -102,17 +102,32 @@ func GetDocumentHandler(res http.ResponseWriter, req *http.Request) {
 	}
 	db := util.GetDb()
 	docID := muxie.GetParam(res, "id")
-	var questions []models.Question
-	if err := db.Where(models.Question{Document: docID}).Find(&questions).Error; err != nil {
+	var dbQuestions []models.Question
+	if err := db.Where(models.Question{Document: docID}).Find(&dbQuestions).Error; err != nil {
 		httputil.WriteError(res, http.StatusInternalServerError, "db query failed")
 		return
 	}
-	if len(questions) == 0 {
+	if len(dbQuestions) == 0 {
 		httputil.WriteError(res, http.StatusNotFound, "Document not found")
 		return
 	}
+
+	questions := make([]Question, len(dbQuestions))
+	for i, q := range dbQuestions {
+		questions[i] = Question{
+			ID:        q.ID,
+			CreatedAt: q.CreatedAt,
+			UpdatedAt: q.UpdatedAt,
+
+			Document: q.Document,
+			Start:    q.Start,
+			End:      q.End,
+			Answers:  nil,
+		}
+	}
+
 	httputil.WriteData(res, http.StatusOK, Document{
 		ID:        docID,
-		Questions: questions,
+		Questions: dbQuestions,
 	})
 }
