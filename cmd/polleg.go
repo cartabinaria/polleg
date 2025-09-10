@@ -121,6 +121,9 @@ func main() {
 		Handle("GET", authChain.ForFunc(proposal.GetProposalByDocumentHandler)).
 		Handle("DELETE", authChain.ForFunc(proposal.DeleteProposalByDocumentHandler)))
 
+	// Logs
+	mux.Handle("/logs", authChain.ForFunc(api.LogsHandler))
+
 	// start garbage collector
 	go util.GarbageCollector(config.ImagesPath)
 
