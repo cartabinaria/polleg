@@ -13,8 +13,8 @@ import (
 )
 
 type Document struct {
-	ID        string            `json:"id"`
-	Questions []models.Question `json:"questions"`
+	ID        string     `json:"id"`
+	Questions []Question `json:"questions"`
 }
 
 type Coord struct {
@@ -82,7 +82,7 @@ func PostDocumentHandler(res http.ResponseWriter, req *http.Request) {
 
 	httputil.WriteData(res, http.StatusOK, Document{
 		ID:        data.ID,
-		Questions: questions,
+		Questions: dbQuestionsToQuestions(questions),
 	})
 }
 
@@ -112,22 +112,25 @@ func GetDocumentHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	questions := make([]Question, len(dbQuestions))
-	for i, q := range dbQuestions {
-		questions[i] = Question{
-			ID:        q.ID,
-			CreatedAt: q.CreatedAt,
-			UpdatedAt: q.UpdatedAt,
+	httputil.WriteData(res, http.StatusOK, Document{
+		ID:        docID,
+		Questions: dbQuestionsToQuestions(dbQuestions),
+	})
+}
 
-			Document: q.Document,
-			Start:    q.Start,
-			End:      q.End,
+func dbQuestionsToQuestions(q []models.Question) []Question {
+	questions := make([]Question, len(q))
+	for i, question := range q {
+		questions[i] = Question{
+			ID:        question.ID,
+			CreatedAt: question.CreatedAt,
+			UpdatedAt: question.UpdatedAt,
+
+			Document: question.Document,
+			Start:    question.Start,
+			End:      question.End,
 			Answers:  nil,
 		}
 	}
-
-	httputil.WriteData(res, http.StatusOK, Document{
-		ID:        docID,
-		Questions: dbQuestions,
-	})
+	return questions
 }
