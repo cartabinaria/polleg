@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/cartabinaria/polleg/models"
+	"github.com/cartabinaria/polleg/util"
 	"gorm.io/gorm"
 )
 
@@ -18,14 +19,15 @@ type Proposal struct {
 	Start        uint32 `json:"start"`
 	End          uint32 `json:"end"`
 
-	Username string `json:"username"`
+	User          string `json:"username"`
+	UserAvatarURL string `json:"user_avatar_url"`
 }
 
 func dbProposalToProposal(db *gorm.DB, p *models.Proposal) Proposal {
-	var user models.User
-	if err := db.Find(&user, "id = ?", p.UserID).Error; err != nil {
-		slog.With("user_id", p.UserID, "err", err).Error("db query failed finding user")
-		user = models.User{
+	user, err := util.GetUserByID(db, p.UserID)
+	if err != nil {
+		slog.With("proposal", p, "err", err).Error("error while getting the user for a proposal")
+		user = &models.User{
 			Username: "unknown",
 		}
 	}
@@ -40,7 +42,8 @@ func dbProposalToProposal(db *gorm.DB, p *models.Proposal) Proposal {
 		Start:        p.Start,
 		End:          p.End,
 
-		Username: user.Username,
+		User:          user.Username,
+		UserAvatarURL: util.GetPublicAvatarURL(user.ID),
 	}
 }
 

@@ -81,7 +81,7 @@ func ConvertAnswerToAPI(answer models.Answer, isAdmin bool, requesterID int) (*A
 		username = usr.Alias
 		content = latestVersion.Content
 	} else {
-		avatar = fmt.Sprintf("https://avatars.githubusercontent.com/u/%d?v=4", usr.ID)
+		avatar = util.GetPublicAvatarURL(usr.ID)
 		username = usr.Username
 		content = latestVersion.Content
 	}

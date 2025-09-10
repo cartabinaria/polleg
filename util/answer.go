@@ -15,10 +15,6 @@ var names = []string{"Wyatt", "Vivian", "Maria", "Alexander", "Luis", "Aidan", "
 
 var DeletedURL = "https://api.dicebear.com/9.x/thumbs/svg?seed=Eden&backgroundColor=0a5b83&backgroundType[]&eyes[]&eyesColor[]&face[]&mouth[]"
 
-func GenerateAnonymousAvatar(alias string) string {
-	return fmt.Sprintf("https://api.dicebear.com/9.x/thumbs/svg?seed=%s", alias)
-}
-
 func generateUniqueAlias(db *gorm.DB) (string, error) {
 	// Generate cryptographically secure random index
 	nameIndex, err := rand.Int(rand.Reader, big.NewInt(int64(len(names))))
