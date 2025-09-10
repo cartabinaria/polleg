@@ -118,22 +118,12 @@ func GetAllProposalsHandler(res http.ResponseWriter, req *http.Request) {
 		return p.DocumentID
 	})
 
-	docProps := []DocumentProposal{}
+	var docProps []DocumentProposal
 	for doc, group := range groupedByDoc {
-		var qs []Proposal
-		for _, proposal := range group {
-			q := Proposal{
-				DocumentID:   doc,
-				DocumentPath: proposal.DocumentPath,
-				Start:        proposal.Start,
-				End:          proposal.End,
-			}
-			qs = append(qs, q)
-		}
 		data := DocumentProposal{
 			ID:           doc,
 			DocumentPath: group[0].DocumentPath,
-			Questions:    qs,
+			Questions:    group,
 		}
 		docProps = append(docProps, data)
 	}
