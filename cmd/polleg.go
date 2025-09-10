@@ -79,8 +79,11 @@ func main() {
 		slog.Error("failed to create authentication middleware", "err", err)
 		os.Exit(1)
 	}
-	authChain := muxie.Pre(util.NewLoggerMiddleware, httputil.NewCorsMiddleware(config.ClientURLs, true, mux), authMiddleware.Handler)
-	authOptionalChain := muxie.Pre(util.NewLoggerMiddleware, httputil.NewCorsMiddleware(config.ClientURLs, true, mux), authMiddleware.NonBlockingHandler)
+
+	mux.Use(util.NewLoggerMiddleware, httputil.NewCorsMiddleware(config.ClientURLs, true, mux))
+
+	authChain := muxie.Pre(authMiddleware.Handler)
+	authOptionalChain := muxie.Pre(authMiddleware.NonBlockingHandler)
 
 	// authentication-less read-only queries
 	mux.Handle("/documents/:id", authOptionalChain.ForFunc(api.GetDocumentHandler))
