@@ -6,6 +6,7 @@ import (
 
 	"github.com/cartabinaria/auth/pkg/httputil"
 	"github.com/cartabinaria/auth/pkg/middleware"
+	"github.com/cartabinaria/polleg/models"
 	"github.com/cartabinaria/polleg/util"
 	"github.com/kataras/muxie"
 )
@@ -32,13 +33,13 @@ func GetProposalByIdHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	var props Proposal
-	if err := db.Where(Proposal{ID: propID}).Take(&props).Error; err != nil {
+	var props models.Proposal
+	if err := db.Where("id = ?", propID).Take(&props).Error; err != nil {
 		httputil.WriteError(res, http.StatusNotFound, "Not found")
 		return
 	}
 
-	httputil.WriteData(res, http.StatusOK, props)
+	httputil.WriteData(res, http.StatusOK, dbProposalToProposal(db, &props))
 }
 
 // @Summary		Delete a proposal
@@ -63,7 +64,7 @@ func DeleteProposalByIdHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if err := db.Delete(&Proposal{}, propID).Error; err != nil {
+	if err := db.Delete(&models.Proposal{}, propID).Error; err != nil {
 		httputil.WriteError(res, http.StatusInternalServerError, "db query failed")
 		return
 	}

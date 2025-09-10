@@ -17,8 +17,18 @@ import (
 )
 
 type DocumentProposal struct {
-	ID        string     `json:"id"`
-	Questions []Proposal `json:"questions"`
+	ID           string     `json:"id"`
+	DocumentPath string     `json:"document_path,omitempty"`
+	Questions    []Proposal `json:"questions"`
+}
+
+type PostDocumentProposalRequest struct {
+	// ID is calculated with sha256sum of the document path
+	ID string `json:"id"`
+	// In order to list all available documents with proposals, we have to
+	// store the document path too. We can't use the ID because it's irreversible.
+	DocumentPath string      `json:"document_path,omitempty"`
+	Coords       []api.Coord `json:"coords"`
 }
 
 // @Summary		Insert a new proposal
@@ -35,27 +45,23 @@ func PostProposalHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if !middleware.GetAdmin(req) {
-		httputil.WriteError(res, http.StatusForbidden, "you are not admin")
-		return
-	}
-
 	db := util.GetDb()
 
 	// decode data
-	var data api.PostDocumentRequest
+	var data PostDocumentProposalRequest
 	if err := json.NewDecoder(req.Body).Decode(&data); err != nil {
 		httputil.WriteError(res, http.StatusBadRequest, "couldn't decode body")
 		return
 	}
 
 	// save questions
-	var questions []Proposal
+	var questions []models.Proposal
 	for _, coord := range data.Coords {
-		q := Proposal{
-			Document: data.ID,
-			Start:    coord.Start,
-			End:      coord.End,
+		q := models.Proposal{
+			DocumentID:   data.ID,
+			DocumentPath: data.DocumentPath,
+			Start:        coord.Start,
+			End:          coord.End,
 		}
 		questions = append(questions, q)
 	}
@@ -65,10 +71,7 @@ func PostProposalHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	httputil.WriteData(res, http.StatusOK, DocumentProposal{
-		ID:        data.ID,
-		Questions: questions,
-	})
+	httputil.WriteData(res, http.StatusOK, dbProposalsToProposals(db, questions))
 }
 
 func groupByProperty[T any, K comparable](items []T, getProperty func(T) K) map[K][]T {
@@ -93,25 +96,18 @@ func GetAllProposalsHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if !middleware.GetAdmin(req) {
-		httputil.WriteError(res, http.StatusForbidden, "you are not admin")
-		return
-	}
-
 	db := util.GetDb()
-	var questions []Proposal
-	if err := db.Find(&questions).Error; err != nil {
+	var dbProposals []models.Proposal
+	if err := db.Find(&dbProposals).Error; err != nil {
 		httputil.WriteError(res, http.StatusInternalServerError, "db query failed")
 		return
 	}
-	if len(questions) == 0 {
-		httputil.WriteError(res, http.StatusInternalServerError, "No proposal found")
-		return
-	}
+
+	proposals := dbProposalsToProposals(db, dbProposals)
 
 	// group proposal by the document
-	groupedByDoc := groupByProperty(questions, func(p Proposal) string {
-		return p.Document
+	groupedByDoc := groupByProperty(proposals, func(p Proposal) string {
+		return p.DocumentID
 	})
 
 	docProps := []DocumentProposal{}
@@ -119,15 +115,17 @@ func GetAllProposalsHandler(res http.ResponseWriter, req *http.Request) {
 		var qs []Proposal
 		for _, proposal := range group {
 			q := Proposal{
-				Document: doc,
-				Start:    proposal.Start,
-				End:      proposal.End,
+				DocumentID:   doc,
+				DocumentPath: proposal.DocumentPath,
+				Start:        proposal.Start,
+				End:          proposal.End,
 			}
 			qs = append(qs, q)
 		}
 		data := DocumentProposal{
-			ID:        doc,
-			Questions: qs,
+			ID:           doc,
+			DocumentPath: group[0].DocumentPath,
+			Questions:    qs,
 		}
 		docProps = append(docProps, data)
 	}
@@ -166,7 +164,7 @@ func ApproveProposalHandler(res http.ResponseWriter, req *http.Request) {
 	}
 
 	db := util.GetDb()
-	var proposal Proposal
+	var proposal models.Proposal
 	var question models.Question
 
 	err = db.Transaction(func(tx *gorm.DB) error {
@@ -177,7 +175,7 @@ func ApproveProposalHandler(res http.ResponseWriter, req *http.Request) {
 
 		// Create question
 		question = models.Question{
-			Document: proposal.Document,
+			Document: proposal.DocumentID,
 			Start:    proposal.Start,
 			End:      proposal.End,
 		}

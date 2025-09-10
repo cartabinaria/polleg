@@ -43,15 +43,17 @@ const (
 
 type Question struct {
 	// taken from from gorm.Model, so we can json strigify properly
-	ID        uint           `json:"id" gorm:"primarykey"`
-	CreatedAt time.Time      `json:"created_at"`
-	UpdatedAt time.Time      `json:"updated_at"`
-	DeletedAt gorm.DeletedAt `json:"-" gorm:"index"`
+	ID        uint `gorm:"primarykey"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt gorm.DeletedAt `gorm:"index"`
 
-	Document string   `json:"document"`
-	Start    uint32   `json:"start"`
-	End      uint32   `json:"end"`
-	Answers  []Answer `json:"answers" gorm:"foreignKey:Question;references:ID"`
+	Document string
+	Start    uint32
+	End      uint32
+	Answers  []Answer `gorm:"foreignKey:Question;references:ID"`
+
+	UserID uint `gorm:"index; not null;"`
 }
 
 func (q *Question) AfterDelete(tx *gorm.DB) (err error) {
@@ -77,6 +79,9 @@ type User struct {
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `json:"-" gorm:"index"`
+
+	Questions []Question `json:"-" gorm:"foreignKey:UserID;references:ID"`
+	Proposals []Proposal `json:"-" gorm:"foreignKey:UserID;references:ID"`
 }
 
 type PostAnswerRequest struct {
@@ -98,4 +103,19 @@ type Image struct {
 
 	UserID uint `gorm:"index; not null; foreignKey:User; references:ID"`
 	Size   uint `gorm:"not null"`
+}
+
+type Proposal struct {
+	// taken from from gorm.Model, so we can json strigify properly
+	ID        uint64 `gorm:"primarykey"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt gorm.DeletedAt `gorm:"index"`
+
+	DocumentID   string
+	DocumentPath string
+	Start        uint32
+	End          uint32
+
+	UserID uint `gorm:"index; not null;"`
 }
