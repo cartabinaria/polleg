@@ -11,6 +11,8 @@ import (
 	"github.com/cartabinaria/polleg/util"
 )
 
+const SYSTEM_USER_ID = 0
+
 type Log struct {
 	Timestamp time.Time `json:"timestamp"`
 	Action    string    `json:"action"`    // Created, Updated, Deleted
@@ -58,7 +60,11 @@ func LogsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for i := range logs {
-		if username, ok := userMap[logs[i].UserID]; ok {
+		if logs[i].UserID == SYSTEM_USER_ID {
+			logs[i].Username = "system"
+			logs[i].UserAvatarURL = ""
+			continue
+		} else if username, ok := userMap[logs[i].UserID]; ok {
 			logs[i].Username = username
 			logs[i].UserAvatarURL = util.GetPublicAvatarURL(logs[i].UserID)
 		}
@@ -69,15 +75,29 @@ func LogsHandler(w http.ResponseWriter, r *http.Request) {
 
 func imagesToLogs(images []models.Image) []Log {
 	logs := make([]Log, len(images))
-	for i, img := range images {
-		logs[i] = Log{
-			Timestamp:     img.CreatedAt,
-			Action:        "Created",
-			ItemType:      "Image",
-			ItemID:        img.ID,
+	for _, img := range images {
+		logs = append(logs, Log{
+			Timestamp: img.CreatedAt,
+			Action:    "Created",
+			ItemType:  "Image",
+			ItemID:    img.ID,
+
 			UserID:        img.UserID,
 			Username:      "",
 			UserAvatarURL: "",
+		})
+
+		if img.DeletedAt.Valid {
+			logs = append(logs, Log{
+				Timestamp: img.DeletedAt.Time,
+				Action:    "Deleted",
+				ItemType:  "Image",
+				ItemID:    img.ID,
+
+				UserID:        SYSTEM_USER_ID,
+				Username:      "",
+				UserAvatarURL: "",
+			})
 		}
 	}
 	return logs
