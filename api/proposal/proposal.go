@@ -104,6 +104,11 @@ func GetAllProposalsHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	if !middleware.GetAdmin(req) {
+		httputil.WriteError(res, http.StatusForbidden, "you are not admin")
+		return
+	}
+
 	db := util.GetDb()
 	var dbProposals []models.Proposal
 	if err := db.Find(&dbProposals).Error; err != nil {
