@@ -77,6 +77,15 @@ func LogsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	logs = append(logs, usersToLogs(users)...)
 
+	// Proposals
+	var proposals []models.Proposal
+	if err := db.Find(&proposals).Error; err != nil {
+		slog.With("err", err).Error("error while getting proposals from DB")
+		httputil.WriteError(w, http.StatusBadRequest, "could not get logs")
+		return
+	}
+	logs = append(logs, proposalsToLogs(proposals)...)
+
 	// Map user IDs to usernames and avatar URLs
 	userMap := make(map[uint]string, len(users))
 	for _, u := range users {
@@ -210,6 +219,36 @@ func usersToLogs(users []models.User) []Log {
 				Action:    "deleted",
 				ItemType:  "user",
 				ItemID:    strconv.FormatUint(uint64(u.ID), 10),
+
+				UserID:        SYSTEM_USER_ID,
+				Username:      "",
+				UserAvatarURL: "",
+			})
+		}
+	}
+	return logs
+}
+
+func proposalsToLogs(proposals []models.Proposal) []Log {
+	logs := make([]Log, 0, len(proposals)*2)
+	for _, p := range proposals {
+		logs = append(logs, Log{
+			Timestamp: p.CreatedAt,
+			Action:    "created",
+			ItemType:  "proposal",
+			ItemID:    strconv.FormatUint(uint64(p.ID), 10),
+
+			UserID:        p.UserID,
+			Username:      "",
+			UserAvatarURL: "",
+		})
+
+		if p.DeletedAt.Valid {
+			logs = append(logs, Log{
+				Timestamp: p.DeletedAt.Time,
+				Action:    "deleted",
+				ItemType:  "proposal",
+				ItemID:    strconv.FormatUint(uint64(p.ID), 10),
 
 				UserID:        SYSTEM_USER_ID,
 				Username:      "",
