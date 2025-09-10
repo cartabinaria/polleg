@@ -80,10 +80,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	mux.Use(httputil.NewCorsMiddleware(config.ClientURLs, true, mux))
+	mux.Use(util.NewLoggerMiddleware, httputil.NewCorsMiddleware(config.ClientURLs, true, mux))
 
-	authChain := muxie.Pre(util.NewLoggerMiddleware, authMiddleware.Handler)
-	authOptionalChain := muxie.Pre(util.NewLoggerMiddleware, authMiddleware.NonBlockingHandler)
+	authChain := muxie.Pre(authMiddleware.Handler)
+	authOptionalChain := muxie.Pre(authMiddleware.NonBlockingHandler)
 
 	// authentication-less read-only queries
 	mux.Handle("/documents/:id", authOptionalChain.ForFunc(api.GetDocumentHandler))
