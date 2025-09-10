@@ -68,14 +68,16 @@ func LogsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	logs = append(logs, answersVersionsToLogs(answerVersions, answers)...)
 
-	// Map user IDs to usernames and avatar URLs
+	// Users
 	var users []models.User
 	if err := db.Find(&users).Error; err != nil {
 		slog.With("err", err).Error("error while getting users from DB")
 		httputil.WriteError(w, http.StatusBadRequest, "could not get logs")
 		return
 	}
+	logs = append(logs, usersToLogs(users)...)
 
+	// Map user IDs to usernames and avatar URLs
 	userMap := make(map[uint]string, len(users))
 	for _, u := range users {
 		userMap[u.ID] = u.Username
@@ -185,5 +187,35 @@ func answersVersionsToLogs(answersVersions []models.AnswerVersion, answers []mod
 		})
 	}
 
+	return logs
+}
+
+func usersToLogs(users []models.User) []Log {
+	logs := make([]Log, 0, len(users)*2)
+	for _, u := range users {
+		logs = append(logs, Log{
+			Timestamp: u.CreatedAt,
+			Action:    "created",
+			ItemType:  "user",
+			ItemID:    strconv.FormatUint(uint64(u.ID), 10),
+
+			UserID:        u.ID,
+			Username:      "",
+			UserAvatarURL: "",
+		})
+
+		if u.DeletedAt.Valid {
+			logs = append(logs, Log{
+				Timestamp: u.DeletedAt.Time,
+				Action:    "deleted",
+				ItemType:  "user",
+				ItemID:    strconv.FormatUint(uint64(u.ID), 10),
+
+				UserID:        SYSTEM_USER_ID,
+				Username:      "",
+				UserAvatarURL: "",
+			})
+		}
+	}
 	return logs
 }
