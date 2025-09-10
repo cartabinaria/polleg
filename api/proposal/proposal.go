@@ -45,12 +45,19 @@ func PostProposalHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	db := util.GetDb()
-
 	// decode data
 	var data PostDocumentProposalRequest
 	if err := json.NewDecoder(req.Body).Decode(&data); err != nil {
 		httputil.WriteError(res, http.StatusBadRequest, "couldn't decode body")
+		return
+	}
+
+	db := util.GetDb()
+	user := middleware.MustGetUser(req)
+	_, err := util.GetOrCreateUserByID(db, user.ID, user.Username)
+	if err != nil {
+		slog.With("user", user, "err", err).Error("error while getting or creating the user-alias association")
+		httputil.WriteError(res, http.StatusBadRequest, "could not insert the answer")
 		return
 	}
 
@@ -62,6 +69,7 @@ func PostProposalHandler(res http.ResponseWriter, req *http.Request) {
 			DocumentPath: data.DocumentPath,
 			Start:        coord.Start,
 			End:          coord.End,
+			UserID:       uint(user.ID),
 		}
 		questions = append(questions, q)
 	}
@@ -164,6 +172,9 @@ func ApproveProposalHandler(res http.ResponseWriter, req *http.Request) {
 	}
 
 	db := util.GetDb()
+	user := middleware.MustGetUser(req)
+	_, err = util.GetOrCreateUserByID(db, user.ID, user.Username)
+
 	var proposal models.Proposal
 	var question models.Question
 
@@ -178,6 +189,7 @@ func ApproveProposalHandler(res http.ResponseWriter, req *http.Request) {
 			Document: proposal.DocumentID,
 			Start:    proposal.Start,
 			End:      proposal.End,
+			UserID:   uint(user.ID),
 		}
 
 		if err := tx.Create(&question).Error; err != nil {

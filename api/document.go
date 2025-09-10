@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
 
 	"github.com/cartabinaria/auth/pkg/httputil"
@@ -47,6 +48,13 @@ func PostDocumentHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 	db := util.GetDb()
+	user := middleware.MustGetUser(req)
+	_, err := util.GetOrCreateUserByID(db, user.ID, user.Username)
+	if err != nil {
+		slog.With("user", user, "err", err).Error("error while getting or creating the user-alias association")
+		httputil.WriteError(res, http.StatusBadRequest, "could not insert the answer")
+		return
+	}
 
 	// decode data
 	var data PostDocumentRequest
@@ -62,6 +70,7 @@ func PostDocumentHandler(res http.ResponseWriter, req *http.Request) {
 			Document: data.ID,
 			Start:    coord.Start,
 			End:      coord.End,
+			UserID:   uint(user.ID),
 		}
 		questions = append(questions, q)
 	}
