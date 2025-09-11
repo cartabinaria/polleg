@@ -47,6 +47,14 @@ func GetUserByID(db *gorm.DB, id uint) (*models.User, error) {
 	return &user, nil
 }
 
+func GetUserByUsername(db *gorm.DB, username string) (*models.User, error) {
+	var user models.User
+	if err := db.Where("username = ?", username).First(&user).Error; err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
 func GetOrCreateUserByID(db *gorm.DB, id uint, username string) (*models.User, error) {
 	user, err := GetUserByID(db, id)
 	if err == nil {
@@ -133,9 +141,9 @@ func GetBannedUsers(db *gorm.DB) ([]models.User, error) {
 	return users, nil
 }
 
-func BanUnbanUser(db *gorm.DB, userID uint, ban bool) error {
+func BanUnbanUser(db *gorm.DB, username string, ban bool) error {
 	var user models.User
-	if err := db.First(&user, userID).Error; err != nil {
+	if err := db.Where("username = ?", username).First(&user).Error; err != nil {
 		return err
 	}
 

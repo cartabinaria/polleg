@@ -35,6 +35,11 @@ type BannedUser struct {
 	BannedAt  time.Time `json:"banned_at"`
 }
 
+type BanUserRequest struct {
+	Username string `json:"username"`
+	Ban      bool   `json:"ban"`
+}
+
 // @Summary		Report an answer
 // @Description	Report an answer given its ID
 // @Tags			moderation
@@ -176,11 +181,6 @@ func GetBannedHandler(w http.ResponseWriter, r *http.Request) {
 	httputil.WriteData(w, http.StatusOK, returnBannedUsers)
 }
 
-type BanUserRequest struct {
-	UserID uint `json:"user_id"`
-	Ban    bool `json:"ban"`
-}
-
 func BanUserHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -200,15 +200,15 @@ func BanUserHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.UserID == 0 {
-		httputil.WriteError(w, http.StatusBadRequest, "user_id is required")
+	if req.Username == "" {
+		httputil.WriteError(w, http.StatusBadRequest, "username is required")
 		return
 	}
 
 	db := util.GetDb()
-	user, err := util.GetUserByID(db, req.UserID)
+	user, err := util.GetUserByUsername(db, req.Username)
 	if err != nil {
-		httputil.WriteError(w, http.StatusInternalServerError, "failed to get user by id")
+		httputil.WriteError(w, http.StatusInternalServerError, "failed to get user by username")
 		slog.With("err", err).Error("failed to get user by id")
 		return
 	}
@@ -217,7 +217,7 @@ func BanUserHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = util.BanUnbanUser(db, req.UserID, req.Ban)
+	err = util.BanUnbanUser(db, req.Username, req.Ban)
 	if err != nil {
 		httputil.WriteError(w, http.StatusInternalServerError, "failed to ban/unban user")
 		slog.With("err", err).Error("failed to ban/unban user")
