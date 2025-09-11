@@ -127,5 +127,5 @@ func GetReportsHandler(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	httputil.WriteData(w, http.StatusOK, reports)
+	httputil.WriteData(w, http.StatusOK, returnResports)
 }
