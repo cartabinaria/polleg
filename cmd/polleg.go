@@ -124,6 +124,10 @@ func main() {
 	// Logs
 	mux.Handle("/logs", authChain.ForFunc(api.LogsHandler))
 
+	// Moderation
+	mux.Handle("/moderation/report/:id", authChain.ForFunc(api.ReportByIdHandler))
+	mux.Handle("/moderation/reports", authChain.ForFunc(api.GetReportsHandler))
+
 	// start garbage collector
 	go util.GarbageCollector(config.ImagesPath)
 

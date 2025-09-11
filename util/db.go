@@ -104,3 +104,23 @@ func GetNumberOfImagesByUser(db *gorm.DB, userID uint) (int64, error) {
 	}
 	return count, nil
 }
+
+func SaveNewReport(db *gorm.DB, answerID uint, cause string, userID uint) error {
+	report := models.Report{
+		AnswerID: answerID,
+		Cause:    cause,
+		UserID:   userID,
+	}
+	if err := db.Create(&report).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func GetAllReports(db *gorm.DB) ([]models.Report, error) {
+	var reports []models.Report
+	if err := db.Preload("User").Find(&reports).Error; err != nil {
+		return nil, err
+	}
+	return reports, nil
+}
