@@ -102,7 +102,7 @@ func GetReportsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	returnResports := make([]Report, len(reports))
+	returnResports := make([]Report, 0, len(reports))
 	for _, report := range reports {
 
 		user, err := util.GetUserByID(db, report.UserID)
