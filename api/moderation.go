@@ -29,10 +29,10 @@ type Report struct {
 }
 
 type BannedUser struct {
-	ID        uint      `json:"id"`
-	Username  string    `json:"username"`
-	AvatarURL string    `json:"avatar_url"`
-	BannedAt  time.Time `json:"banned_at"`
+	ID            uint      `json:"id"`
+	Username      string    `json:"username"`
+	UserAvatarURL string    `json:"user_avatar_url"`
+	BannedAt      time.Time `json:"banned_at"`
 }
 
 type BanUserRequest struct {
@@ -171,10 +171,10 @@ func GetBannedHandler(w http.ResponseWriter, r *http.Request) {
 	returnBannedUsers := make([]BannedUser, 0, len(bannedUsers))
 	for _, user := range bannedUsers {
 		returnBannedUsers = append(returnBannedUsers, BannedUser{
-			ID:        user.ID,
-			Username:  user.Username,
-			BannedAt:  user.UpdatedAt,
-			AvatarURL: util.GetPublicAvatarURL(user.ID),
+			ID:            user.ID,
+			Username:      user.Username,
+			BannedAt:      user.UpdatedAt,
+			UserAvatarURL: util.GetPublicAvatarURL(user.ID),
 		})
 	}
 
