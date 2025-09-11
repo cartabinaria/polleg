@@ -119,7 +119,7 @@ func SaveNewReport(db *gorm.DB, answerID uint, cause string, userID uint) error 
 
 func GetAllReports(db *gorm.DB) ([]models.Report, error) {
 	var reports []models.Report
-	if err := db.Preload("User").Find(&reports).Error; err != nil {
+	if err := db.Find(&reports).Error; err != nil {
 		return nil, err
 	}
 	return reports, nil
