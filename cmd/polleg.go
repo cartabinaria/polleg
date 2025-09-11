@@ -82,7 +82,7 @@ func main() {
 
 	mux.Use(util.NewLoggerMiddleware, httputil.NewCorsMiddleware(config.ClientURLs, true, mux))
 
-	authChain := muxie.Pre(authMiddleware.Handler)
+	authChain := muxie.Pre(authMiddleware.Handler, api.BanMiddleware)
 	authOptionalChain := muxie.Pre(authMiddleware.NonBlockingHandler)
 
 	// authentication-less read-only queries
