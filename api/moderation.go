@@ -38,7 +38,7 @@ type BannedUser struct {
 // @Summary		Report an answer
 // @Description	Report an answer given its ID
 // @Tags			moderation
-// @Param			id	path	string	true	"Answer id"
+// @Param			id		path	string			true	"Answer id"
 // @Param			report	body	ReportRequest	true	"Report cause"
 // @Produce		json
 // @Success		200	{object}	string

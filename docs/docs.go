@@ -333,6 +333,108 @@ const docTemplate = `{
                 }
             }
         },
+        "/moderation/ban": {
+            "get": {
+                "description": "Get all banned users",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "moderation"
+                ],
+                "summary": "Get all banned users",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/api.BannedUser"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/httputil.ApiError"
+                        }
+                    }
+                }
+            }
+        },
+        "/moderation/report/{id}": {
+            "post": {
+                "description": "Report an answer given its ID",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "moderation"
+                ],
+                "summary": "Report an answer",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Answer id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Report cause",
+                        "name": "report",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/api.ReportRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/httputil.ApiError"
+                        }
+                    }
+                }
+            }
+        },
+        "/moderation/reports": {
+            "get": {
+                "description": "Get all reports",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "moderation"
+                ],
+                "summary": "Get all reports",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/api.Report"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/httputil.ApiError"
+                        }
+                    }
+                }
+            }
+        },
         "/proposals": {
             "get": {
                 "description": "Get all proposals",
@@ -670,6 +772,23 @@ const docTemplate = `{
                 }
             }
         },
+        "api.BannedUser": {
+            "type": "object",
+            "properties": {
+                "avatar_url": {
+                    "type": "string"
+                },
+                "banned_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
         "api.Coord": {
             "type": "object",
             "properties": {
@@ -690,7 +809,7 @@ const docTemplate = `{
                 "questions": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/models.Question"
+                        "$ref": "#/definitions/api.Question"
                     }
                 }
             }
@@ -749,6 +868,40 @@ const docTemplate = `{
                 }
             }
         },
+        "api.Report": {
+            "type": "object",
+            "properties": {
+                "answer_id": {
+                    "type": "integer"
+                },
+                "cause": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "user_avatar_url": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "api.ReportRequest": {
+            "type": "object",
+            "properties": {
+                "cause": {
+                    "type": "string"
+                }
+            }
+        },
         "api.Vote": {
             "type": "object",
             "properties": {
@@ -786,6 +939,9 @@ const docTemplate = `{
         "api_proposal.DocumentProposal": {
             "type": "object",
             "properties": {
+                "document_path": {
+                    "type": "string"
+                },
                 "id": {
                     "type": "string"
                 },
@@ -806,11 +962,13 @@ const docTemplate = `{
                 "document": {
                     "type": "string"
                 },
+                "document_path": {
+                    "type": "string"
+                },
                 "end": {
                     "type": "integer"
                 },
                 "id": {
-                    "description": "taken from from gorm.Model, so we can json strigify properly",
                     "type": "integer"
                 },
                 "start": {
@@ -818,6 +976,24 @@ const docTemplate = `{
                 },
                 "updated_at": {
                     "type": "string"
+                },
+                "user_avatar_url": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "gorm.DeletedAt": {
+            "type": "object",
+            "properties": {
+                "time": {
+                    "type": "string"
+                },
+                "valid": {
+                    "description": "Valid is true if Time is not NULL",
+                    "type": "boolean"
                 }
             }
         },
@@ -835,8 +1011,11 @@ const docTemplate = `{
                 "anonymous": {
                     "type": "boolean"
                 },
-                "created_at": {
+                "createdAt": {
                     "type": "string"
+                },
+                "deletedAt": {
+                    "$ref": "#/definitions/gorm.DeletedAt"
                 },
                 "downvotes": {
                     "type": "integer"
@@ -860,11 +1039,20 @@ const docTemplate = `{
                 "state": {
                     "$ref": "#/definitions/models.AnswerState"
                 },
-                "updated_at": {
+                "updatedAt": {
                     "type": "string"
                 },
                 "upvotes": {
                     "type": "integer"
+                },
+                "userId": {
+                    "type": "integer"
+                },
+                "votes": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.Vote"
+                    }
                 }
             }
         },
@@ -908,24 +1096,54 @@ const docTemplate = `{
                         "$ref": "#/definitions/models.Answer"
                     }
                 },
-                "created_at": {
+                "createdAt": {
                     "type": "string"
+                },
+                "deletedAt": {
+                    "$ref": "#/definitions/gorm.DeletedAt"
                 },
                 "document": {
                     "type": "string"
                 },
                 "end": {
-                    "type": "integer"
+                    "type": "integer",
+                    "format": "int32"
                 },
                 "id": {
                     "description": "taken from from gorm.Model, so we can json strigify properly",
                     "type": "integer"
                 },
                 "start": {
+                    "type": "integer",
+                    "format": "int32"
+                },
+                "updatedAt": {
+                    "type": "string"
+                },
+                "userID": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.Vote": {
+            "type": "object",
+            "properties": {
+                "answerID": {
                     "type": "integer"
                 },
-                "updated_at": {
+                "createdAt": {
+                    "description": "taken from from gorm.Model",
                     "type": "string"
+                },
+                "updatedAt": {
+                    "type": "string"
+                },
+                "userId": {
+                    "type": "integer"
+                },
+                "vote": {
+                    "type": "integer",
+                    "format": "int32"
                 }
             }
         }
