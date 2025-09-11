@@ -225,6 +225,18 @@ func usersToLogs(users []models.User) []Log {
 				UserAvatarURL: "",
 			})
 		}
+
+		if u.Banned {
+			logs = append(logs, Log{
+				Timestamp:     *u.BannedAt,
+				Action:        "banned",
+				ItemType:      "user",
+				ItemID:        strconv.FormatUint(uint64(u.ID), 10),
+				UserID:        SYSTEM_USER_ID,
+				Username:      "",
+				UserAvatarURL: "",
+			})
+		}
 	}
 	return logs
 }
