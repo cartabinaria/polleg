@@ -24,7 +24,7 @@ type Report struct {
 
 	AnswerID      uint   `json:"answer_id"`
 	Cause         string `json:"cause"`
-	Username      string `json:"user_id"`
+	Username      string `json:"username"`
 	UserAvatarURL string `json:"user_avatar_url"`
 }
 
