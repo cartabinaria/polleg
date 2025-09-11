@@ -124,3 +124,32 @@ func GetAllReports(db *gorm.DB) ([]models.Report, error) {
 	}
 	return reports, nil
 }
+
+func GetBannedUsers(db *gorm.DB) ([]models.User, error) {
+	var users []models.User
+	if err := db.Where("banned = ?", true).Find(&users).Error; err != nil {
+		return nil, err
+	}
+	return users, nil
+}
+
+func BanUnbanUser(db *gorm.DB, userID uint, ban bool) error {
+	var user models.User
+	if err := db.First(&user, userID).Error; err != nil {
+		return err
+	}
+
+	if ban {
+		now := time.Now()
+		user.Banned = true
+		user.BannedAt = &now
+	} else {
+		user.Banned = false
+		user.BannedAt = nil
+	}
+
+	if err := db.Save(&user).Error; err != nil {
+		return err
+	}
+	return nil
+}

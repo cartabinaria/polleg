@@ -80,6 +80,9 @@ type User struct {
 	UpdatedAt time.Time
 	DeletedAt gorm.DeletedAt `gorm:"index"`
 
+	Banned   bool `gorm:"default:false"`
+	BannedAt *time.Time
+
 	Questions []Question `gorm:"foreignKey:UserID;references:ID"`
 	Proposals []Proposal `gorm:"foreignKey:UserID;references:ID"`
 	Reports   []Report   `gorm:"foreignKey:UserID;references:ID"`

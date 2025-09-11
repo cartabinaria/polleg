@@ -28,6 +28,13 @@ type Report struct {
 	UserAvatarURL string `json:"user_avatar_url"`
 }
 
+type BannedUser struct {
+	ID        uint      `json:"id"`
+	Username  string    `json:"username"`
+	AvatarURL string    `json:"avatar_url"`
+	BannedAt  time.Time `json:"banned_at"`
+}
+
 // @Summary		Report an answer
 // @Description	Report an answer given its ID
 // @Tags			moderation
@@ -128,4 +135,98 @@ func GetReportsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	httputil.WriteData(w, http.StatusOK, returnResports)
+}
+
+// @Summary		Get all banned users
+// @Description	Get all banned users
+// @Tags			moderation
+// @Produce		json
+// @Success		200	{object}	[]BannedUser
+// @Failure		400	{object}	httputil.ApiError
+// @Router			/moderation/ban [get]
+func GetBannedHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	if !middleware.GetAdmin(r) {
+		httputil.WriteError(w, http.StatusForbidden, "you are not admin")
+		return
+	}
+
+	db := util.GetDb()
+	bannedUsers, err := util.GetBannedUsers(db)
+	if err != nil {
+		httputil.WriteError(w, http.StatusInternalServerError, "failed to get banned users")
+		slog.With("err", err).Error("failed to get banned users")
+		return
+	}
+
+	returnBannedUsers := make([]BannedUser, 0, len(bannedUsers))
+	for _, user := range bannedUsers {
+		returnBannedUsers = append(returnBannedUsers, BannedUser{
+			ID:        user.ID,
+			Username:  user.Username,
+			BannedAt:  user.UpdatedAt,
+			AvatarURL: util.GetPublicAvatarURL(user.ID),
+		})
+	}
+
+	httputil.WriteData(w, http.StatusOK, returnBannedUsers)
+}
+
+type BanUserRequest struct {
+	UserID uint `json:"user_id"`
+	Ban    bool `json:"ban"`
+}
+
+func BanUserHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	if !middleware.GetAdmin(r) {
+		httputil.WriteError(w, http.StatusForbidden, "you are not admin")
+		return
+	}
+
+	var req BanUserRequest
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		httputil.WriteError(w, http.StatusBadRequest, "invalid request body")
+		slog.With("err", err).Error("failed to decode request body")
+		return
+	}
+
+	if req.UserID == 0 {
+		httputil.WriteError(w, http.StatusBadRequest, "user_id is required")
+		return
+	}
+
+	db := util.GetDb()
+	user, err := util.GetUserByID(db, req.UserID)
+	if err != nil {
+		httputil.WriteError(w, http.StatusInternalServerError, "failed to get user by id")
+		slog.With("err", err).Error("failed to get user by id")
+		return
+	}
+	if user == nil {
+		httputil.WriteError(w, http.StatusBadRequest, "user not found")
+		return
+	}
+
+	err = util.BanUnbanUser(db, req.UserID, req.Ban)
+	if err != nil {
+		httputil.WriteError(w, http.StatusInternalServerError, "failed to ban/unban user")
+		slog.With("err", err).Error("failed to ban/unban user")
+		return
+	}
+
+	if req.Ban {
+		httputil.WriteData(w, http.StatusOK, "User banned successfully")
+	} else {
+		httputil.WriteData(w, http.StatusOK, "User unbanned successfully")
+	}
 }

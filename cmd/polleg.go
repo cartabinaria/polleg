@@ -127,6 +127,9 @@ func main() {
 	// Moderation
 	mux.Handle("/moderation/report/:id", authChain.ForFunc(api.ReportByIdHandler))
 	mux.Handle("/moderation/reports", authChain.ForFunc(api.GetReportsHandler))
+	mux.Handle("/moderation/ban", muxie.Methods().
+		Handle("GET", authChain.ForFunc(api.GetBannedHandler)).
+		Handle("POST", authChain.ForFunc(api.BanUserHandler)))
 
 	// start garbage collector
 	go util.GarbageCollector(config.ImagesPath)
