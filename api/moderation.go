@@ -181,6 +181,14 @@ func GetBannedHandler(w http.ResponseWriter, r *http.Request) {
 	httputil.WriteData(w, http.StatusOK, returnBannedUsers)
 }
 
+// @Summary		Ban or unban a user
+// @Description	Ban or unban a user given its username
+// @Tags			moderation
+// @Param			banUser	body	BanUserRequest	true	"Ban or unban a user"
+// @Produce		json
+// @Success		200	{object}	string
+// @Failure		400	{object}	httputil.ApiError
+// @Router			/moderation/ban [post]
 func BanUserHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -209,7 +217,7 @@ func BanUserHandler(w http.ResponseWriter, r *http.Request) {
 	user, err := util.GetUserByUsername(db, req.Username)
 	if err != nil {
 		httputil.WriteError(w, http.StatusInternalServerError, "failed to get user by username")
-		slog.With("err", err).Error("failed to get user by id")
+		slog.With("err", err).Error("failed to get user by username")
 		return
 	}
 	if user == nil {

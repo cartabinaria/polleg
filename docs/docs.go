@@ -360,6 +360,41 @@ const docTemplate = `{
                         }
                     }
                 }
+            },
+            "post": {
+                "description": "Ban or unban a user given its username",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "moderation"
+                ],
+                "summary": "Ban or unban a user",
+                "parameters": [
+                    {
+                        "description": "Ban or unban a user",
+                        "name": "banUser",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/api.BanUserRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/httputil.ApiError"
+                        }
+                    }
+                }
             }
         },
         "/moderation/report/{id}": {
@@ -772,17 +807,28 @@ const docTemplate = `{
                 }
             }
         },
+        "api.BanUserRequest": {
+            "type": "object",
+            "properties": {
+                "ban": {
+                    "type": "boolean"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
         "api.BannedUser": {
             "type": "object",
             "properties": {
-                "avatar_url": {
-                    "type": "string"
-                },
                 "banned_at": {
                     "type": "string"
                 },
                 "id": {
                     "type": "integer"
+                },
+                "user_avatar_url": {
+                    "type": "string"
                 },
                 "username": {
                     "type": "string"
@@ -889,7 +935,7 @@ const docTemplate = `{
                 "user_avatar_url": {
                     "type": "string"
                 },
-                "user_id": {
+                "username": {
                     "type": "string"
                 }
             }

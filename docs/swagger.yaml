@@ -31,14 +31,21 @@ definitions:
       user_avatar_url:
         type: string
     type: object
+  api.BanUserRequest:
+    properties:
+      ban:
+        type: boolean
+      username:
+        type: string
+    type: object
   api.BannedUser:
     properties:
-      avatar_url:
-        type: string
       banned_at:
         type: string
       id:
         type: integer
+      user_avatar_url:
+        type: string
       username:
         type: string
     type: object
@@ -107,7 +114,7 @@ definitions:
         type: string
       user_avatar_url:
         type: string
-      user_id:
+      username:
         type: string
     type: object
   api.ReportRequest:
@@ -514,6 +521,29 @@ paths:
           schema:
             $ref: '#/definitions/httputil.ApiError'
       summary: Get all banned users
+      tags:
+      - moderation
+    post:
+      description: Ban or unban a user given its username
+      parameters:
+      - description: Ban or unban a user
+        in: body
+        name: banUser
+        required: true
+        schema:
+          $ref: '#/definitions/api.BanUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/httputil.ApiError'
+      summary: Ban or unban a user
       tags:
       - moderation
   /moderation/report/{id}:
