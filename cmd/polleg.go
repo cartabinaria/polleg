@@ -85,6 +85,8 @@ func main() {
 	authChain := muxie.Pre(authMiddleware.Handler, api.BanMiddleware)
 	authOptionalChain := muxie.Pre(authMiddleware.NonBlockingHandler)
 
+	mux.HandleFunc("/cookie-button", api.CookieButton)
+
 	// authentication-less read-only queries
 	mux.Handle("/documents/:id", authOptionalChain.ForFunc(api.GetDocumentHandler))
 	mux.Handle("/questions/:id", muxie.Methods().
