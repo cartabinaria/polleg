@@ -333,6 +333,47 @@ const docTemplate = `{
                 }
             }
         },
+        "/logs": {
+            "get": {
+                "description": "Get system logs (admin only)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin"
+                ],
+                "summary": "Get system logs",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/api.Log"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/httputil.ApiError"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/httputil.ApiError"
+                        }
+                    },
+                    "405": {
+                        "description": "Method Not Allowed",
+                        "schema": {
+                            "$ref": "#/definitions/httputil.ApiError"
+                        }
+                    }
+                }
+            }
+        },
         "/moderation/ban": {
             "get": {
                 "description": "Get all banned users",
@@ -867,6 +908,31 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "url": {
+                    "type": "string"
+                }
+            }
+        },
+        "api.Log": {
+            "type": "object",
+            "properties": {
+                "action": {
+                    "description": "Created, Updated, Deleted",
+                    "type": "string"
+                },
+                "item_id": {
+                    "type": "string"
+                },
+                "item_type": {
+                    "description": "Answer, Image, ecc.",
+                    "type": "string"
+                },
+                "timestamp": {
+                    "type": "string"
+                },
+                "user_avatar_url": {
+                    "type": "string"
+                },
+                "username": {
                     "type": "string"
                 }
             }

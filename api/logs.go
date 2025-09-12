@@ -26,6 +26,15 @@ type Log struct {
 	UserAvatarURL string `json:"user_avatar_url"`
 }
 
+// @Summary		Get system logs
+// @Description	Get system logs (admin only)
+// @Tags			admin
+// @Produce		json
+// @Success		200	{array}		Log
+// @Failure		400	{object}	httputil.ApiError
+// @Failure		403	{object}	httputil.ApiError
+// @Failure		405	{object}	httputil.ApiError
+// @Router			/logs [get]
 func LogsHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		httputil.WriteError(w, http.StatusMethodNotAllowed, "invalid method")
