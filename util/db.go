@@ -47,6 +47,14 @@ func GetUserByID(db *gorm.DB, id uint) (*models.User, error) {
 	return &user, nil
 }
 
+func GetUserByUsername(db *gorm.DB, username string) (*models.User, error) {
+	var user models.User
+	if err := db.Where("username = ?", username).First(&user).Error; err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
 func GetOrCreateUserByID(db *gorm.DB, id uint, username string) (*models.User, error) {
 	user, err := GetUserByID(db, id)
 	if err == nil {
@@ -103,4 +111,53 @@ func GetNumberOfImagesByUser(db *gorm.DB, userID uint) (int64, error) {
 		return 0, err
 	}
 	return count, nil
+}
+
+func SaveNewReport(db *gorm.DB, answerID uint, cause string, userID uint) error {
+	report := models.Report{
+		AnswerID: answerID,
+		Cause:    cause,
+		UserID:   userID,
+	}
+	if err := db.Create(&report).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func GetAllReports(db *gorm.DB) ([]models.Report, error) {
+	var reports []models.Report
+	if err := db.Find(&reports).Error; err != nil {
+		return nil, err
+	}
+	return reports, nil
+}
+
+func GetBannedUsers(db *gorm.DB) ([]models.User, error) {
+	var users []models.User
+	if err := db.Where("banned = ?", true).Find(&users).Error; err != nil {
+		return nil, err
+	}
+	return users, nil
+}
+
+func BanUnbanUser(db *gorm.DB, username string, ban bool) error {
+	var user models.User
+	if err := db.Where("username = ?", username).First(&user).Error; err != nil {
+		return err
+	}
+
+	if ban {
+		now := time.Now()
+		user.Banned = true
+		user.BannedAt = &now
+	} else {
+		user.Banned = false
+		user.BannedAt = nil
+	}
+
+	if err := db.Save(&user).Error; err != nil {
+		return err
+	}
+	return nil
 }

@@ -80,8 +80,12 @@ type User struct {
 	UpdatedAt time.Time
 	DeletedAt gorm.DeletedAt `gorm:"index"`
 
+	Banned   bool `gorm:"default:false"`
+	BannedAt *time.Time
+
 	Questions []Question `gorm:"foreignKey:UserID;references:ID"`
 	Proposals []Proposal `gorm:"foreignKey:UserID;references:ID"`
+	Reports   []Report   `gorm:"foreignKey:UserID;references:ID"`
 }
 
 type PostAnswerRequest struct {
@@ -118,4 +122,15 @@ type Proposal struct {
 	End          uint32
 
 	UserID uint `gorm:"index; not null;"`
+}
+
+type Report struct {
+	ID        uint `gorm:"primarykey"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt gorm.DeletedAt `gorm:"index"`
+
+	AnswerID uint `gorm:"index; not null;"`
+	Cause    string
+	UserID   uint `gorm:"index; not null;"`
 }

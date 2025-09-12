@@ -14,7 +14,7 @@ type Proposal struct {
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 
-	DocumentID   string `json:"document_id"`
+	DocumentID   string `json:"document"`
 	DocumentPath string `json:"document_path,omitempty"`
 	Start        uint32 `json:"start"`
 	End          uint32 `json:"end"`

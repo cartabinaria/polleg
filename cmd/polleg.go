@@ -61,7 +61,7 @@ func main() {
 		os.Exit(1)
 	}
 	db := util.GetDb()
-	err = db.AutoMigrate(&models.User{}, &models.Proposal{}, &models.Question{}, &models.Answer{}, &models.Vote{}, &models.Image{}, models.AnswerVersion{})
+	err = db.AutoMigrate(&models.User{}, &models.Proposal{}, &models.Question{}, &models.Answer{}, &models.Vote{}, &models.Image{}, &models.AnswerVersion{}, &models.Report{})
 	if err != nil {
 		slog.Error("AutoMigrate failed", "err", err)
 		os.Exit(1)
@@ -82,7 +82,7 @@ func main() {
 
 	mux.Use(util.NewLoggerMiddleware, httputil.NewCorsMiddleware(config.ClientURLs, true, mux))
 
-	authChain := muxie.Pre(authMiddleware.Handler)
+	authChain := muxie.Pre(authMiddleware.Handler, api.BanMiddleware)
 	authOptionalChain := muxie.Pre(authMiddleware.NonBlockingHandler)
 
 	// authentication-less read-only queries
@@ -120,6 +120,16 @@ func main() {
 	mux.Handle("/proposals/document/:id", muxie.Methods().
 		Handle("GET", authChain.ForFunc(proposal.GetProposalByDocumentHandler)).
 		Handle("DELETE", authChain.ForFunc(proposal.DeleteProposalByDocumentHandler)))
+
+	// Logs
+	mux.Handle("/logs", authChain.ForFunc(api.LogsHandler))
+
+	// Moderation
+	mux.Handle("/moderation/report/:id", authChain.ForFunc(api.ReportByIdHandler))
+	mux.Handle("/moderation/reports", authChain.ForFunc(api.GetReportsHandler))
+	mux.Handle("/moderation/ban", muxie.Methods().
+		Handle("GET", authChain.ForFunc(api.GetBannedHandler)).
+		Handle("POST", authChain.ForFunc(api.BanUserHandler)))
 
 	// start garbage collector
 	go util.GarbageCollector(config.ImagesPath)
