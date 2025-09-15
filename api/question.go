@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cartabinaria/auth"
 	"github.com/cartabinaria/auth/pkg/httputil"
 	"github.com/cartabinaria/auth/pkg/middleware"
 	"github.com/cartabinaria/polleg/models"
@@ -119,7 +120,7 @@ func DelQuestionHandler(res http.ResponseWriter, req *http.Request) {
 	}
 
 	user := middleware.MustGetUser(req)
-	if !user.Admin {
+	if user.Role != auth.RoleAdmin {
 		httputil.WriteError(res, http.StatusForbidden, "only admins can delete questions")
 		return
 	}

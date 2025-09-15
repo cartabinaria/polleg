@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cartabinaria/auth"
 	"github.com/cartabinaria/auth/pkg/httputil"
 	"github.com/cartabinaria/auth/pkg/middleware"
 	"github.com/cartabinaria/polleg/models"
@@ -270,7 +271,7 @@ func DelAnswerHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if !user.Admin && answer.UserId != user.ID {
+	if user.Role != auth.RoleAdmin && answer.UserId != user.ID {
 		slog.Error("you are not an admin or the owner of the answer", "err", err)
 		httputil.WriteError(res, http.StatusUnauthorized, "you are not an admin or the owner of the answer")
 		return
@@ -281,7 +282,7 @@ func DelAnswerHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if user.ID != answer.UserId && user.Admin {
+	if user.ID != answer.UserId && user.Role == auth.RoleAdmin {
 		answer.State = models.AnswerStateDeletedByAdmin
 	} else {
 		answer.State = models.AnswerStateDeletedByUser
@@ -356,7 +357,7 @@ func UpdateAnswerHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	responseData, err := ConvertAnswerToAPI(answer, user.Admin, int(user.ID))
+	responseData, err := ConvertAnswerToAPI(answer, user.Role == auth.RoleAdmin, int(user.ID))
 	if err != nil {
 		slog.Error("couldn't generate response", "err", err)
 		httputil.WriteError(res, http.StatusInternalServerError, "couldn't generate response")
