@@ -6,6 +6,8 @@ github.com/cartabinaria/auth v0.3.7 h1:o7VW3W357//LH8+T5yH9e7/Po4Nl0u+t976D9+uU6
 github.com/cartabinaria/auth v0.3.7/go.mod h1:UyFb8tI7IuWO3nsHOuUNIBS7SjnM3D3uZi7FfWW6x/w=
 github.com/cartabinaria/auth v0.3.8 h1:jqHR8+LqU8vtrZyaEQjr9HQ2o4drHh5MDbShZipUR1o=
 github.com/cartabinaria/auth v0.3.8/go.mod h1:UyFb8tI7IuWO3nsHOuUNIBS7SjnM3D3uZi7FfWW6x/w=
+github.com/cartabinaria/auth v0.3.9 h1:dcnEnAJdl/5hDdp9o+WdUFm/xPos+L0YhU9XKyS9QXs=
+github.com/cartabinaria/auth v0.3.9/go.mod h1:UyFb8tI7IuWO3nsHOuUNIBS7SjnM3D3uZi7FfWW6x/w=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=

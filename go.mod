@@ -5,7 +5,7 @@ go 1.24.0
 toolchain go1.24.6
 
 require (
-	github.com/cartabinaria/auth v0.3.8
+	github.com/cartabinaria/auth v0.3.9
 	github.com/google/uuid v1.6.0
 	github.com/kataras/muxie v1.1.2
 	github.com/pelletier/go-toml/v2 v2.2.4
