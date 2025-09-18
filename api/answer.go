@@ -271,7 +271,7 @@ func DelAnswerHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if user.Role != auth.RoleMember && user.Role != auth.RoleAdmin && answer.UserId != user.ID {
+	if user.Role == auth.RoleUser && answer.UserId != user.ID {
 		slog.Error("you are not an admin or a member or the owner of the answer", "err", err)
 		httputil.WriteError(res, http.StatusUnauthorized, "you are not an admin or the owner of the answer")
 		return
@@ -389,7 +389,7 @@ func GetRepliesHandler(res http.ResponseWriter, req *http.Request) {
 	if err == nil {
 		requesterID = int(user.ID)
 	}
-	isMember := middleware.GetMember(req)
+	isMember := middleware.GetMember(req) || middleware.GetAdmin(req)
 
 	aID, err := strconv.ParseUint(rawQID, 10, 0)
 	if err != nil {

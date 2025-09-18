@@ -104,8 +104,8 @@ func GetAllProposalsHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if !middleware.GetMember(req) {
-		httputil.WriteError(res, http.StatusForbidden, "you are not a member")
+	if !middleware.GetMember(req) && !middleware.GetAdmin(req) {
+		httputil.WriteError(res, http.StatusForbidden, "you are not a member or admin")
 		return
 	}
 
@@ -154,8 +154,8 @@ func ApproveProposalHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if !middleware.GetMember(req) {
-		httputil.WriteError(res, http.StatusForbidden, "you are not a member")
+	if !middleware.GetMember(req) && !middleware.GetAdmin(req) {
+		httputil.WriteError(res, http.StatusForbidden, "you are not a member or admin")
 		return
 	}
 

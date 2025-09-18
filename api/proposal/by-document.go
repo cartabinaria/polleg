@@ -20,8 +20,8 @@ import (
 // @Failure		400	{object}	httputil.ApiError
 // @Router			/proposals/document/{id} [get]
 func GetProposalByDocumentHandler(res http.ResponseWriter, req *http.Request) {
-	if !middleware.GetMember(req) {
-		httputil.WriteError(res, http.StatusForbidden, "you are not a member")
+	if !middleware.GetMember(req) && !middleware.GetAdmin(req) {
+		httputil.WriteError(res, http.StatusForbidden, "you are not a member or admin")
 		return
 	}
 
@@ -51,8 +51,8 @@ func GetProposalByDocumentHandler(res http.ResponseWriter, req *http.Request) {
 // @Failure		400	{object}	httputil.ApiError
 // @Router			/proposals/document/{id} [delete]
 func DeleteProposalByDocumentHandler(res http.ResponseWriter, req *http.Request) {
-	if !middleware.GetMember(req) {
-		httputil.WriteError(res, http.StatusForbidden, "you are not a member")
+	if !middleware.GetMember(req) && !middleware.GetAdmin(req) {
+		httputil.WriteError(res, http.StatusForbidden, "you are not a member or admin")
 		return
 	}
 

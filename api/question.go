@@ -48,7 +48,7 @@ func GetQuestionHandler(res http.ResponseWriter, req *http.Request) {
 	if err == nil {
 		requesterID = int(user.ID)
 	}
-	isMember := middleware.GetMember(req)
+	isMember := middleware.GetMember(req) || middleware.GetAdmin(req)
 
 	qID, err := strconv.ParseUint(rawQID, 10, 0)
 	if err != nil {
@@ -120,8 +120,8 @@ func DelQuestionHandler(res http.ResponseWriter, req *http.Request) {
 	}
 
 	user := middleware.MustGetUser(req)
-	if user.Role == auth.RoleMember {
-		httputil.WriteError(res, http.StatusForbidden, "only members can delete questions")
+	if user.Role == auth.RoleUser {
+		httputil.WriteError(res, http.StatusForbidden, "only members and admins can delete questions")
 		return
 	}
 

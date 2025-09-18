@@ -43,8 +43,8 @@ func PostDocumentHandler(res http.ResponseWriter, req *http.Request) {
 	}
 
 	// Only members of the staff can add a document
-	if !middleware.GetMember(req) {
-		httputil.WriteError(res, http.StatusForbidden, "you are not a member")
+	if !middleware.GetMember(req) && !middleware.GetAdmin(req) {
+		httputil.WriteError(res, http.StatusForbidden, "you are not a member or admin")
 		return
 	}
 	db := util.GetDb()
