@@ -48,7 +48,7 @@ func GetQuestionHandler(res http.ResponseWriter, req *http.Request) {
 	if err == nil {
 		requesterID = int(user.ID)
 	}
-	isMember := middleware.GetMember(req) || middleware.GetAdmin(req)
+	isMemberOrAdmin := middleware.GetMember(req) || middleware.GetAdmin(req)
 
 	qID, err := strconv.ParseUint(rawQID, 10, 0)
 	if err != nil {
@@ -87,7 +87,7 @@ func GetQuestionHandler(res http.ResponseWriter, req *http.Request) {
 	// recursively convert answers
 	var responseAnswers []Answer
 	for _, ans := range question.Answers {
-		ans, err := ConvertAnswerToAPI(ans, isMember, requesterID)
+		ans, err := ConvertAnswerToAPI(ans, isMemberOrAdmin, requesterID)
 		if err != nil {
 			return
 		}

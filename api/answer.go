@@ -59,7 +59,7 @@ func createPreloadFunction(votesSubquery *gorm.DB) func(db *gorm.DB) *gorm.DB {
 	}
 }
 
-func ConvertAnswerToAPI(answer models.Answer, isMember bool, requesterID int) (*Answer, error) {
+func ConvertAnswerToAPI(answer models.Answer, isMemberOrAdmin bool, requesterID int) (*Answer, error) {
 	db := util.GetDb()
 	usr, err := util.GetUserByID(db, answer.UserId)
 	if err != nil {
@@ -103,7 +103,7 @@ func ConvertAnswerToAPI(answer models.Answer, isMember bool, requesterID int) (*
 	// recursively convert replies
 	var replies []Answer
 	for _, reply := range answer.Replies {
-		reply, err := ConvertAnswerToAPI(reply, isMember, requesterID)
+		reply, err := ConvertAnswerToAPI(reply, isMemberOrAdmin, requesterID)
 		if err != nil {
 			return nil, err
 		}
@@ -122,7 +122,7 @@ func ConvertAnswerToAPI(answer models.Answer, isMember bool, requesterID int) (*
 		Upvotes:       answer.Upvotes,
 		Downvotes:     answer.Downvotes,
 		Replies:       replies,
-		CanIDelete:    isMember || int(answer.UserId) == requesterID,
+		CanIDelete:    isMemberOrAdmin || int(answer.UserId) == requesterID,
 		IVoted:        voteValue,
 	}, nil
 
@@ -389,7 +389,7 @@ func GetRepliesHandler(res http.ResponseWriter, req *http.Request) {
 	if err == nil {
 		requesterID = int(user.ID)
 	}
-	isMember := middleware.GetMember(req) || middleware.GetAdmin(req)
+	isMemberOrAdmin := middleware.GetMember(req) || middleware.GetAdmin(req)
 
 	aID, err := strconv.ParseUint(rawQID, 10, 0)
 	if err != nil {
@@ -424,7 +424,7 @@ func GetRepliesHandler(res http.ResponseWriter, req *http.Request) {
 	}
 
 	answer.Replies = replies
-	responseData, err := ConvertAnswerToAPI(answer, isMember, requesterID)
+	responseData, err := ConvertAnswerToAPI(answer, isMemberOrAdmin, requesterID)
 	if err != nil {
 		httputil.WriteError(res, http.StatusInternalServerError, "could not create response")
 		return
