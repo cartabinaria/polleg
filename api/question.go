@@ -48,7 +48,7 @@ func GetQuestionHandler(res http.ResponseWriter, req *http.Request) {
 	if err == nil {
 		requesterID = int(user.ID)
 	}
-	isAdmin := middleware.GetAdmin(req)
+	isMember := middleware.GetMember(req)
 
 	qID, err := strconv.ParseUint(rawQID, 10, 0)
 	if err != nil {
@@ -87,7 +87,7 @@ func GetQuestionHandler(res http.ResponseWriter, req *http.Request) {
 	// recursively convert answers
 	var responseAnswers []Answer
 	for _, ans := range question.Answers {
-		ans, err := ConvertAnswerToAPI(ans, isAdmin, requesterID)
+		ans, err := ConvertAnswerToAPI(ans, isMember, requesterID)
 		if err != nil {
 			return
 		}
@@ -120,8 +120,8 @@ func DelQuestionHandler(res http.ResponseWriter, req *http.Request) {
 	}
 
 	user := middleware.MustGetUser(req)
-	if user.Role != auth.RoleAdmin {
-		httputil.WriteError(res, http.StatusForbidden, "only admins can delete questions")
+	if user.Role == auth.RoleMember {
+		httputil.WriteError(res, http.StatusForbidden, "only members can delete questions")
 		return
 	}
 

@@ -59,7 +59,7 @@ func createPreloadFunction(votesSubquery *gorm.DB) func(db *gorm.DB) *gorm.DB {
 	}
 }
 
-func ConvertAnswerToAPI(answer models.Answer, isAdmin bool, requesterID int) (*Answer, error) {
+func ConvertAnswerToAPI(answer models.Answer, isMember bool, requesterID int) (*Answer, error) {
 	db := util.GetDb()
 	usr, err := util.GetUserByID(db, answer.UserId)
 	if err != nil {
@@ -103,7 +103,7 @@ func ConvertAnswerToAPI(answer models.Answer, isAdmin bool, requesterID int) (*A
 	// recursively convert replies
 	var replies []Answer
 	for _, reply := range answer.Replies {
-		reply, err := ConvertAnswerToAPI(reply, isAdmin, requesterID)
+		reply, err := ConvertAnswerToAPI(reply, isMember, requesterID)
 		if err != nil {
 			return nil, err
 		}
@@ -122,7 +122,7 @@ func ConvertAnswerToAPI(answer models.Answer, isAdmin bool, requesterID int) (*A
 		Upvotes:       answer.Upvotes,
 		Downvotes:     answer.Downvotes,
 		Replies:       replies,
-		CanIDelete:    isAdmin || int(answer.UserId) == requesterID,
+		CanIDelete:    isMember || int(answer.UserId) == requesterID,
 		IVoted:        voteValue,
 	}, nil
 
@@ -271,8 +271,8 @@ func DelAnswerHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if user.Role != auth.RoleAdmin && answer.UserId != user.ID {
-		slog.Error("you are not an admin or the owner of the answer", "err", err)
+	if user.Role != auth.RoleMember && user.Role != auth.RoleAdmin && answer.UserId != user.ID {
+		slog.Error("you are not an admin or a member or the owner of the answer", "err", err)
 		httputil.WriteError(res, http.StatusUnauthorized, "you are not an admin or the owner of the answer")
 		return
 	}
@@ -282,7 +282,7 @@ func DelAnswerHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if user.ID != answer.UserId && user.Role == auth.RoleAdmin {
+	if user.ID != answer.UserId {
 		answer.State = models.AnswerStateDeletedByAdmin
 	} else {
 		answer.State = models.AnswerStateDeletedByUser
@@ -389,7 +389,7 @@ func GetRepliesHandler(res http.ResponseWriter, req *http.Request) {
 	if err == nil {
 		requesterID = int(user.ID)
 	}
-	isAdmin := middleware.GetAdmin(req)
+	isMember := middleware.GetMember(req)
 
 	aID, err := strconv.ParseUint(rawQID, 10, 0)
 	if err != nil {
@@ -424,7 +424,7 @@ func GetRepliesHandler(res http.ResponseWriter, req *http.Request) {
 	}
 
 	answer.Replies = replies
-	responseData, err := ConvertAnswerToAPI(answer, isAdmin, requesterID)
+	responseData, err := ConvertAnswerToAPI(answer, isMember, requesterID)
 	if err != nil {
 		httputil.WriteError(res, http.StatusInternalServerError, "could not create response")
 		return
