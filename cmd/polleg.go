@@ -86,7 +86,6 @@ func main() {
 	authOptionalChain := muxie.Pre(authMiddleware.NonBlockingHandler)
 
 	// authentication-less read-only queries
-	mux.Handle("/documents", authOptionalChain.ForFunc(api.GetDocumentsWithQuestionsHandler))
 	mux.Handle("/documents/:id", authOptionalChain.ForFunc(api.GetDocumentHandler))
 	mux.Handle("/questions/:id", muxie.Methods().
 		Handle("GET", authOptionalChain.ForFunc(api.GetQuestionHandler)).
@@ -101,7 +100,9 @@ func main() {
 	mux.Handle("/answers/:id/vote", authChain.ForFunc(api.PostVote))
 	mux.Handle("/answers/:id/replies", authOptionalChain.ForFunc(api.GetRepliesHandler))
 	// insert new doc and quesions
-	mux.Handle("/documents", authChain.ForFunc(api.PostDocumentHandler))
+	mux.Handle("/documents", muxie.Methods().
+		Handle("POST", authChain.ForFunc(api.PostDocumentHandler)).
+		Handle("GET", authOptionalChain.ForFunc(api.GetDocumentsWithQuestionsHandler)))
 	mux.Handle("/answers/:id", authChain.ForFunc(api.DelAnswerHandler))
 	mux.Handle("/answers/:id", muxie.Methods().
 		Handle("DELETE", authChain.ForFunc(api.DelAnswerHandler)).
