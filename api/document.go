@@ -23,8 +23,9 @@ type Coord struct {
 }
 
 type PostDocumentRequest struct {
-	ID     string  `json:"id"`
-	Coords []Coord `json:"coords"`
+	ID           string  `json:"id"`
+	DocumentPath string  `json:"document_path"`
+	Coords       []Coord `json:"coords"`
 }
 
 // @Summary		Insert a new document
@@ -67,10 +68,11 @@ func PostDocumentHandler(res http.ResponseWriter, req *http.Request) {
 	var questions []models.Question
 	for _, coord := range data.Coords {
 		q := models.Question{
-			Document: data.ID,
-			Start:    coord.Start,
-			End:      coord.End,
-			UserID:   uint(user.ID),
+			Document:     data.ID,
+			DocumentPath: data.DocumentPath,
+			Start:        coord.Start,
+			End:          coord.End,
+			UserID:       uint(user.ID),
 		}
 		questions = append(questions, q)
 	}
@@ -135,6 +137,14 @@ func dbQuestionsToQuestions(q []models.Question) []Question {
 	return questions
 }
 
+// @Summary		Get documents with questions
+// @Description	Given a path prefix, return all the documents that have questions in that path
+// @Tags			document
+// @Param			path	query	string	true	"path prefix"
+// @Produce		json
+// @Success		200	{array}	string
+// @Failure		400	{object}	httputil.ApiError
+// @Router			/documents [get]
 func GetDocumentsWithQuestionsHandler(res http.ResponseWriter, req *http.Request) {
 
 	path := req.URL.Query().Get("path")
@@ -147,7 +157,7 @@ func GetDocumentsWithQuestionsHandler(res http.ResponseWriter, req *http.Request
 
 	var documents []string
 
-	if err := db.Model(&models.Question{}).Where("document LIKE ?", path+"%").Select("document").Group("document").Find(&documents).Error; err != nil {
+	if err := db.Model(&models.Question{}).Where("document_path LIKE ?", path+"%").Select("document_path").Group("document_path").Find(&documents).Error; err != nil {
 		httputil.WriteError(res, http.StatusInternalServerError, "db query failed")
 		return
 	}

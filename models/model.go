@@ -48,10 +48,11 @@ type Question struct {
 	UpdatedAt time.Time
 	DeletedAt gorm.DeletedAt `gorm:"index"`
 
-	Document string
-	Start    uint32
-	End      uint32
-	Answers  []Answer `gorm:"foreignKey:Question;references:ID"`
+	Document     string
+	DocumentPath string
+	Start        uint32
+	End          uint32
+	Answers      []Answer `gorm:"foreignKey:Question;references:ID"`
 
 	UserID uint `gorm:"index; not null;"`
 }
