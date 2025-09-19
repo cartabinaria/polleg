@@ -86,6 +86,7 @@ func main() {
 	authOptionalChain := muxie.Pre(authMiddleware.NonBlockingHandler)
 
 	// authentication-less read-only queries
+	mux.Handle("/documents", authOptionalChain.ForFunc(api.GetDocumentsWithQuestionsHandler))
 	mux.Handle("/documents/:id", authOptionalChain.ForFunc(api.GetDocumentHandler))
 	mux.Handle("/questions/:id", muxie.Methods().
 		Handle("GET", authOptionalChain.ForFunc(api.GetQuestionHandler)).

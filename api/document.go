@@ -134,3 +134,23 @@ func dbQuestionsToQuestions(q []models.Question) []Question {
 	}
 	return questions
 }
+
+func GetDocumentsWithQuestionsHandler(res http.ResponseWriter, req *http.Request) {
+
+	path := req.URL.Query().Get("path")
+	if path == "" {
+		httputil.WriteError(res, http.StatusBadRequest, "path query parameter is required")
+		return
+	}
+
+	db := util.GetDb()
+
+	var documents []string
+
+	if err := db.Model(&models.Question{}).Where("document LIKE ?", path+"%").Select("document").Group("document").Find(&documents).Error; err != nil {
+		httputil.WriteError(res, http.StatusInternalServerError, "db query failed")
+		return
+	}
+
+	httputil.WriteData(res, http.StatusOK, documents)
+}
