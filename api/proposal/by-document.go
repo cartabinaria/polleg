@@ -9,6 +9,8 @@ import (
 	"github.com/cartabinaria/polleg/util"
 	"github.com/kataras/muxie"
 	"golang.org/x/exp/slog"
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // @Summary		Get proposals by document id
@@ -66,4 +68,58 @@ func DeleteProposalByDocumentHandler(res http.ResponseWriter, req *http.Request)
 	}
 
 	res.WriteHeader(http.StatusNoContent)
+}
+
+// @Summary		Approve all proposals for a document
+// @Description	Given a document ID, approve all its proposals
+// @Tags			proposal
+// @Param			id	path	string	true	"Document id"
+// @Produce		json
+// @Success		200	{object}	nil
+// @Failure		400	{object}	httputil.ApiError
+// @Router			/proposals/document/{id}/approve [delete]
+func ApproveProposalByDocumentHandler(res http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodPost {
+		httputil.WriteError(res, http.StatusMethodNotAllowed, "invalid method")
+		return
+	}
+
+	if !middleware.GetMember(req) && !middleware.GetAdmin(req) {
+		httputil.WriteError(res, http.StatusForbidden, "you are not a member or admin")
+		return
+	}
+
+	docID := muxie.GetParam(res, "id")
+	db := util.GetDb()
+
+	var proposals []models.Proposal
+	var questions []models.Question
+
+	err := db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Clauses(clause.Returning{}).Where("document_id = ?", docID).Delete(&proposals).Error; err != nil {
+			slog.Error("error while deleting proposals", "proposals", proposals, "err", err)
+			return err
+		}
+
+		for _, proposal := range proposals {
+			questions = append(questions, models.Question{
+				Document: proposal.DocumentID,
+				Start:    proposal.Start,
+				End:      proposal.End,
+				UserID:   proposal.UserID,
+			})
+		}
+
+		if err := tx.Create(&questions).Error; err != nil {
+			slog.Error("error while creating the questions", "questions", questions, "err", err)
+			return err
+		}
+
+		return nil
+	})
+	if err != nil {
+		slog.With("err", err).Error("transaction failed")
+		httputil.WriteError(res, http.StatusInternalServerError, "transaction failed")
+		return
+	}
 }

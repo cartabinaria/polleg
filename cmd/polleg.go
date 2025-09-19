@@ -120,6 +120,7 @@ func main() {
 	mux.Handle("/proposals/document/:id", muxie.Methods().
 		Handle("GET", authChain.ForFunc(proposal.GetProposalByDocumentHandler)).
 		Handle("DELETE", authChain.ForFunc(proposal.DeleteProposalByDocumentHandler)))
+	mux.Handle("/proposals/document/:id/approve", authChain.ForFunc(proposal.ApproveProposalByDocumentHandler))
 
 	// Logs
 	mux.Handle("/logs", authChain.ForFunc(api.LogsHandler))
