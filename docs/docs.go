@@ -189,6 +189,42 @@ const docTemplate = `{
             }
         },
         "/documents": {
+            "get": {
+                "description": "Given a path prefix, return all the documents that have questions in that path",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "document"
+                ],
+                "summary": "Get documents with questions",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "path prefix",
+                        "name": "path",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/httputil.ApiError"
+                        }
+                    }
+                }
+            },
             "post": {
                 "description": "Insert a new document with all the questions initialised",
                 "produces": [
@@ -640,6 +676,38 @@ const docTemplate = `{
                 }
             }
         },
+        "/proposals/document/{id}/approve": {
+            "delete": {
+                "description": "Given a document ID, approve all its proposals",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "proposal"
+                ],
+                "summary": "Approve all proposals for a document",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Document id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/httputil.ApiError"
+                        }
+                    }
+                }
+            }
+        },
         "/proposals/{id}": {
             "get": {
                 "description": "Get a proposal given its ID",
@@ -695,6 +763,39 @@ const docTemplate = `{
                 "responses": {
                     "200": {
                         "description": "OK"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/httputil.ApiError"
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "description": "Given a proposal ID, update the proposal",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "proposal"
+                ],
+                "summary": "Update a proposal",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Proposal id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api_proposal.Proposal"
+                        }
                     },
                     "400": {
                         "description": "Bad Request",
@@ -945,6 +1046,9 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/api.Coord"
                     }
+                },
+                "document_path": {
+                    "type": "string"
                 },
                 "id": {
                     "type": "string"
@@ -1215,6 +1319,9 @@ const docTemplate = `{
                     "$ref": "#/definitions/gorm.DeletedAt"
                 },
                 "document": {
+                    "type": "string"
+                },
+                "documentPath": {
                     "type": "string"
                 },
                 "end": {

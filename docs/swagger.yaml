@@ -95,6 +95,8 @@ definitions:
         items:
           $ref: '#/definitions/api.Coord'
         type: array
+      document_path:
+        type: string
       id:
         type: string
     type: object
@@ -276,6 +278,8 @@ definitions:
         $ref: '#/definitions/gorm.DeletedAt'
       document:
         type: string
+      documentPath:
+        type: string
       end:
         format: int32
         type: integer
@@ -427,6 +431,31 @@ paths:
       tags:
       - answer
   /documents:
+    get:
+      description: Given a path prefix, return all the documents that have questions
+        in that path
+      parameters:
+      - description: path prefix
+        in: query
+        name: path
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              type: string
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/httputil.ApiError'
+      summary: Get documents with questions
+      tags:
+      - document
     post:
       description: Insert a new document with all the questions initialised
       parameters:
@@ -723,6 +752,28 @@ paths:
       summary: Get proposal by id
       tags:
       - proposal
+    patch:
+      description: Given a proposal ID, update the proposal
+      parameters:
+      - description: Proposal id
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api_proposal.Proposal'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/httputil.ApiError'
+      summary: Update a proposal
+      tags:
+      - proposal
   /proposals/{id}/approve:
     post:
       description: Approve a proposal given its id
@@ -781,6 +832,27 @@ paths:
           schema:
             $ref: '#/definitions/httputil.ApiError'
       summary: Get proposals by document id
+      tags:
+      - proposal
+  /proposals/document/{id}/approve:
+    delete:
+      description: Given a document ID, approve all its proposals
+      parameters:
+      - description: Document id
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/httputil.ApiError'
+      summary: Approve all proposals for a document
       tags:
       - proposal
   /questions/{id}:

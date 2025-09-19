@@ -118,7 +118,8 @@ func main() {
 	mux.Handle("/proposals/:id/approve", authChain.ForFunc(proposal.ApproveProposalHandler))
 	mux.Handle("/proposals/:id", muxie.Methods().
 		Handle("DELETE", authChain.ForFunc(proposal.DeleteProposalByIdHandler)).
-		Handle("GET", authChain.ForFunc(proposal.GetProposalByIdHandler)))
+		Handle("GET", authChain.ForFunc(proposal.GetProposalByIdHandler)).
+		Handle("PATCH", authChain.ForFunc(proposal.UpdateProposalByIdHandler)))
 	mux.Handle("/proposals/document/:id", muxie.Methods().
 		Handle("GET", authChain.ForFunc(proposal.GetProposalByDocumentHandler)).
 		Handle("DELETE", authChain.ForFunc(proposal.DeleteProposalByDocumentHandler)))

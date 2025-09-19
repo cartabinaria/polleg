@@ -142,7 +142,7 @@ func dbQuestionsToQuestions(q []models.Question) []Question {
 // @Tags			document
 // @Param			path	query	string	true	"path prefix"
 // @Produce		json
-// @Success		200	{array}	string
+// @Success		200	{array}		string
 // @Failure		400	{object}	httputil.ApiError
 // @Router			/documents [get]
 func GetDocumentsWithQuestionsHandler(res http.ResponseWriter, req *http.Request) {
