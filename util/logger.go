@@ -1,27 +1,21 @@
 package util
 
 import (
-	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/kataras/muxie"
+	"golang.org/x/exp/slog"
 )
 
 // wrapper that records the status code
 type MuxieStatusRecorder struct {
-	http.ResponseWriter
-	paramStore muxie.ParamStore
+	*muxie.Writer
 	StatusCode int
 }
 
 func NewMuxieStatusRecorder(w http.ResponseWriter) *MuxieStatusRecorder {
 	rec := &MuxieStatusRecorder{
-		ResponseWriter: w,
-	}
-
-	if ps, ok := w.(muxie.ParamStore); ok {
-		rec.paramStore = ps
+		Writer: w.(*muxie.Writer),
 	}
 
 	return rec
@@ -41,26 +35,6 @@ func (r *MuxieStatusRecorder) Write(b []byte) (int, error) {
 	return n, err
 }
 
-func (r *MuxieStatusRecorder) Finish() {
-	if r.StatusCode == 0 {
-		// set by default to 200 if not set
-		r.StatusCode = http.StatusOK
-	}
-}
-
-// implementation of muxie.ParamStore interface
-func (r *MuxieStatusRecorder) Set(key, value string) {
-	r.paramStore.Set(key, value)
-}
-
-func (r *MuxieStatusRecorder) Get(key string) string {
-	return r.paramStore.Get(key)
-}
-
-func (r *MuxieStatusRecorder) GetAll() []muxie.ParamEntry {
-	return r.paramStore.GetAll()
-}
-
 func NewLoggerMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ip := r.Header.Get("X-Forwarded-For")
@@ -75,9 +49,11 @@ func NewLoggerMiddleware(next http.Handler) http.Handler {
 			rec.StatusCode = http.StatusOK
 		}
 
-		fmt.Println(
-			time.Now().Format("2006/01/02 15:04:05"),
-			"HTTP", r.Method, rec.StatusCode, r.URL.Path, ip,
+		slog.Info("HTTP request",
+			slog.String("method", r.Method),
+			slog.Int("status", rec.StatusCode),
+			slog.String("path", r.URL.Path),
+			slog.String("ip", ip),
 		)
 	})
 }
