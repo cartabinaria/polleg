@@ -474,7 +474,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/moderation/report/{id}": {
+        "/moderation/report/": {
             "post": {
                 "description": "Report an answer given its ID",
                 "produces": [
@@ -516,7 +516,9 @@ const docTemplate = `{
                         }
                     }
                 }
-            },
+            }
+        },
+        "/moderation/report/{id}": {
             "delete": {
                 "description": "Delete a report given its ID",
                 "produces": [
@@ -1143,6 +1145,9 @@ const docTemplate = `{
         "api.ReportRequest": {
             "type": "object",
             "properties": {
+                "answer": {
+                    "type": "integer"
+                },
                 "cause": {
                     "type": "string"
                 }

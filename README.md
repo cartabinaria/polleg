@@ -5,6 +5,14 @@ CartaBinaria website.
 
 ## Usage
 
+Start DB:
+
+```bash
+docker compose up -d
+```
+
+then start the server:
+
 ```golang
 go run cmd/polleg.go <config-file>
 ```

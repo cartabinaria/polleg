@@ -15,7 +15,8 @@ import (
 )
 
 type ReportRequest struct {
-	Cause string `json:"cause"`
+	Cause  string `json:"cause"`
+	Answer uint   `json:"answer"`
 }
 
 type Report struct {
@@ -49,22 +50,15 @@ type BanUserRequest struct {
 // @Produce		json
 // @Success		200	{object}	string
 // @Failure		400	{object}	httputil.ApiError
-// @Router			/moderation/report/{id} [post]
-func ReportByIdHandler(w http.ResponseWriter, r *http.Request) {
+// @Router			/moderation/report/ [post]
+func PostReportHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	objectID := muxie.GetParam(w, "id")
-	objID, err := strconv.ParseUint(objectID, 10, 0)
-	if err != nil {
-		httputil.WriteError(w, http.StatusBadRequest, "invalid proposal id")
-		return
-	}
-
 	var req ReportRequest
-	err = json.NewDecoder(r.Body).Decode(&req)
+	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		httputil.WriteError(w, http.StatusBadRequest, "invalid request body")
 		slog.With("err", err).Error("failed to decode request body")
@@ -79,7 +73,7 @@ func ReportByIdHandler(w http.ResponseWriter, r *http.Request) {
 	user := middleware.MustGetUser(r)
 	db := util.GetDb()
 
-	err = util.SaveNewReport(db, uint(objID), req.Cause, user.ID)
+	err = util.SaveNewReport(db, req.Answer, req.Cause, user.ID)
 	if err != nil {
 		httputil.WriteError(w, http.StatusInternalServerError, "failed to save report")
 		slog.With("err", err).Error("failed to save report")
