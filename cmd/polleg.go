@@ -129,6 +129,9 @@ func main() {
 	mux.Handle("/logs", authChain.ForFunc(api.LogsHandler))
 
 	// Moderation
+	mux.Handle("/moderation/report/:id", muxie.Methods().
+		Handle("POST", authChain.ForFunc(api.ReportByIdHandler)).
+		Handle("DELETE", authChain.ForFunc(api.DeleteReportByIdHandler)))
 	mux.Handle("/moderation/report/:id", authChain.ForFunc(api.ReportByIdHandler))
 	mux.Handle("/moderation/reports", authChain.ForFunc(api.GetReportsHandler))
 	mux.Handle("/moderation/ban", muxie.Methods().

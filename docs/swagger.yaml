@@ -620,6 +620,26 @@ paths:
       tags:
       - moderation
   /moderation/report/{id}:
+    delete:
+      description: Delete a report given its ID
+      parameters:
+      - description: Answer id
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/httputil.ApiError'
+      summary: Delete a report
+      tags:
+      - moderation
     post:
       description: Report an answer given its ID
       parameters:

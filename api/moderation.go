@@ -9,6 +9,7 @@ import (
 
 	"github.com/cartabinaria/auth/pkg/httputil"
 	"github.com/cartabinaria/auth/pkg/middleware"
+	"github.com/cartabinaria/polleg/models"
 	"github.com/cartabinaria/polleg/util"
 	"github.com/kataras/muxie"
 )
@@ -237,4 +238,42 @@ func BanUserHandler(w http.ResponseWriter, r *http.Request) {
 	} else {
 		httputil.WriteData(w, http.StatusOK, "User unbanned successfully")
 	}
+}
+
+// @Summary		Delete a report
+// @Description	Delete a report given its ID
+// @Tags			moderation
+// @Param			id	path	string	true	"Answer id"
+// @Produce		json
+// @Success		204	{object}	nil
+// @Failure		400	{object}	httputil.ApiError
+// @Router			/moderation/report/{id} [delete]
+func DeleteReportByIdHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodDelete {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	if !middleware.GetAdmin(r) {
+		httputil.WriteError(w, http.StatusForbidden, "you are not admin")
+		return
+	}
+
+	objectID := muxie.GetParam(w, "id")
+	objID, err := strconv.ParseUint(objectID, 10, 0)
+	if err != nil {
+		httputil.WriteError(w, http.StatusBadRequest, "invalid report id")
+		return
+	}
+
+	db := util.GetDb()
+
+	err = db.Delete(&models.Report{}, objID).Error
+	if err != nil {
+		httputil.WriteError(w, http.StatusInternalServerError, "failed to delete report")
+		slog.With("err", err).Error("failed to delete report")
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
