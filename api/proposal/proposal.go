@@ -133,11 +133,6 @@ func GetAllProposalsHandler(res http.ResponseWriter, req *http.Request) {
 		docProps = append(docProps, data)
 	}
 
-	if len(docProps) == 0 {
-		httputil.WriteError(res, http.StatusNotFound, "Proposal not found")
-		return
-	}
-
 	httputil.WriteData(res, http.StatusOK, docProps)
 }
 
